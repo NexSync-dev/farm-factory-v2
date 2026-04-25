@@ -101,28 +101,36 @@ local function processResult(result)
     return false
 end
 
-local function tick()
-    Scheduler.setInterval("Sniper", getConfig("instantMode") and 0 or getConfig("rollSpeed"))
-
-    if not getConfig("enabled") or _buyLock or os.clock() < _resumeTime then return end
-    if not RollEvent then return end
-
-    local burst = math.max(1, getConfig("rollBurst") or 1)
-    for i = 1, burst do
-        if not getConfig("enabled") or _buyLock or os.clock() < _resumeTime then break end
-
-        _stats.attempts += 1
-        local ok, result = Network.invokeBypass(RollEvent, 2)
-
-        if ok then
-            _stats.totalRolls += 1
-            local matched = processResult(result)
-            if not matched then _stats.skipped += 1 end
-        else
-            _stats.skipped += 1
+local function loop()
+    while true do
+        if not getConfig("enabled") or _buyLock or os.clock() < _resumeTime or not RollEvent then
+            task.wait(0.1)
+            continue
         end
 
-        if i < burst then
+        local burst = math.max(1, getConfig("rollBurst") or 1)
+        for i = 1, burst do
+            if not getConfig("enabled") or _buyLock or os.clock() < _resumeTime then break end
+
+            _stats.attempts += 1
+            local ok, result = Network.invokeBypass(RollEvent, 2)
+
+            if ok then
+                _stats.totalRolls += 1
+                local matched = processResult(result)
+                if not matched then _stats.skipped += 1 end
+            else
+                _stats.skipped += 1
+            end
+
+            if i < burst then
+                RunService.Heartbeat:Wait()
+            end
+        end
+
+        if not getConfig("instantMode") then
+            task.wait(getConfig("rollSpeed"))
+        else
             RunService.Heartbeat:Wait()
         end
     end
@@ -160,7 +168,7 @@ function Sniper.init(state)
         BuyEvent = Comms:WaitForChild("BuySeeds", 5)
     end
 
-    Scheduler.register("Sniper", tick, getConfig("instantMode") and 0 or getConfig("rollSpeed"))
+    task.spawn(loop)
 end
 
 return Sniper
