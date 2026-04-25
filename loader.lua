@@ -12,8 +12,7 @@
 -------------------------------------------------
 -- Config: Set your repo base URL here
 -------------------------------------------------
-local REPO_BASE = "https://raw.githubusercontent.com/OWNER/farm-factory-v2/main/"
--- ^^^ UPDATE THIS after creating the GitHub repo ^^^
+local REPO_BASE = "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/master/"
 
 -------------------------------------------------
 -- Module loader
