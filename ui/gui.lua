@@ -46,6 +46,17 @@ function GUI.build(state)
             if Network and Network.resetStats then Network.resetStats() end
         end
     })
+    StatusBox:AddButton({
+        Text = "🚀 Launch Advanced Roller",
+        Func = function()
+            local url = "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/refs/heads/master/oneclick.lua" -- User will configure this
+            if url ~= "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/refs/heads/master/oneclick.lua" then
+                loadstring(game:HttpGet(url))()
+            else
+                Library:Notify("Please configure the URL in the script first!")
+            end
+        end
+    })
     local InfoBox = Tabs.Main:AddRightGroupbox("Info")
     InfoBox:AddLabel("Fast V2 mode")
     InfoBox:AddLabel("No V1 fallback")
