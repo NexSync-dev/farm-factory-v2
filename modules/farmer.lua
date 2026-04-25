@@ -49,7 +49,7 @@ local function tick()
         if ClickEvent and entry.tile then
             Network.fireBypass(ClickEvent, entry.tile)
             -- Uncomment the line below if you want to see what it's firing on
-            -- Utils.log("DEBUG", "Firing ClickPlant on: " .. tostring(entry.tile.Name))
+            Utils.log("DEBUG", "Firing ClickPlant on: " .. tostring(entry.tile.Name))
         end
 
         harvested += 1
