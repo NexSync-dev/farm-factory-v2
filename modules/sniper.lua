@@ -53,22 +53,29 @@ local function processItem(item)
                 task.wait(0.2)
 
                 local idx = item.StumpIndex or item.Index or 0
-                local success = Network.fireBypass(BuyEvent, idx)
+                local success = false
+                pcall(function()
+                    if BuyEvent:IsA("RemoteFunction") then
+                        success, _ = Network.invokeBypass(BuyEvent, idx)
+                    else
+                        success = Network.fireBypass(BuyEvent, idx)
+                    end
+                end)
 
                 if success then
                     _stats.bought += 1
-                    Utils.log("INFO", "Successfully bought: " .. itemType)
+                    Utils.log("INFO", "Successfully bought: " .. tostring(itemType))
                 else
-                    Utils.log("ERROR", "Buy failed for " .. itemType)
+                    Utils.log("ERROR", "Buy failed for " .. tostring(itemType))
                 end
 
                 Scheduler.resume("Farmer")
                 _buyLock = false
 
-                if getConfig("stopOnMatch") then
-                    Sniper.setEnabled(false)
-                elseif getConfig("autoProceedAfterBuy") then
+                if success and getConfig("autoProceedAfterBuy") then
                     _resumeTime = os.clock() + getConfig("autoProceedDelay")
+                elseif getConfig("stopOnMatch") then
+                    Sniper.setEnabled(false)
                 end
             end)
         elseif getConfig("stopOnMatch") then
@@ -95,6 +102,8 @@ local function processResult(result)
 end
 
 local function tick()
+    Scheduler.setInterval("Sniper", getConfig("instantMode") and 0 or getConfig("rollSpeed"))
+
     if not getConfig("enabled") or _buyLock or os.clock() < _resumeTime then return end
     if not RollEvent then return end
 
