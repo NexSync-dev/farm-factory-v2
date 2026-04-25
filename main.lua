@@ -230,7 +230,7 @@ SniperBox:AddToggle('AutoBuyMatch', { Text = 'Auto Buy on Match', Default = fals
 SniperBox:AddToggle('StopOnMatch', { Text = 'Stop on Match', Default = true, Callback = function(v) Cfg.StopOnMatch = v end })
 SniperBox:AddButton('▶ Start Sniper', function() Cfg.SniperActive = true GlobalSniperLock = false end)
 SniperBox:AddButton('⏹ Stop Sniper', function() Cfg.SniperActive = false GlobalSniperLock = false end)
-SniperBox:AddButton('🚀 Auto Roller One Click', function()
+SniperBox:AddButton('Auto Roller One Click', function()
     local url = "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/refs/heads/master/oneclick.lua"
     if url ~= "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/refs/heads/master/oneclick.lua" then
         loadstring(game:HttpGet(url))()
