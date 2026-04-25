@@ -38,19 +38,18 @@ local function findStumpIndex(itemName)
                 local text = titleObj.Text:lower()
                 if text:find(lowerItem, 1, true) or lowerItem:find(text, 1, true) then
                     local idx = tonumber(child.Name:match("%d+")) or 1
+                    Utils.log("DEBUG", string.format("StumpResolver: Found %s on %s (Index: %d)", itemName, child.Name, idx))
                     return idx
                 end
             end
         end
     end
+    Utils.log("DEBUG", "StumpResolver: No stump found for " .. itemName)
     return nil
 end
 
-local function processItem(item)
-    if type(item) ~= "table" then
-        return false
-    end
-    
+local function isMatch(item)
+    if type(item) ~= "table" then return false, 0, "" end
     local itemType = item.Type or item.Title or ""
     local itemEarnings = tonumber(item.Earnings) or 0
     local targetFruits = getConfig("targetFruits")
@@ -61,9 +60,15 @@ local function processItem(item)
         for _, v in pairs(targetFruits) do if v then hasTargetSelection = true break end end
     end
     
-    local isMatch = (not hasTargetSelection or targetFruits[itemType]) and (itemEarnings >= minEarnings)
-    
-    if isMatch then
+    if (not hasTargetSelection or targetFruits[itemType]) and (itemEarnings >= minEarnings) then
+        return true, itemEarnings, itemType
+    end
+    return false, 0, ""
+end
+
+local function processItem(item)
+    local matched, itemEarnings, itemType = isMatch(item)
+    if matched then
         _stats.matches = _stats.matches + 1
         _lastMatchInfo = { type = itemType, earnings = itemEarnings, time = os.clock() }
         Utils.log("INFO", string.format("SNIPER MATCH: %s (%d)", itemType, itemEarnings))
@@ -74,15 +79,16 @@ local function processItem(item)
                 Scheduler.pause("Farmer")
                 task.wait(0.2)
                 
-                local stumpIdx = item.StumpIndex or item.Index or findStumpIndex(itemType)
+                -- Prioritize finding the index visually to avoid server-side 0-index bugs
+                local stumpIdx = findStumpIndex(itemType) or item.StumpIndex or item.Index
                 if stumpIdx and BuyEvent then
-                    Utils.log("INFO", string.format("Attempting to buy %s (Stump %s)", itemType, tostring(stumpIdx)))
+                    Utils.log("INFO", string.format("Attempting Buy: %s on Stump %s", itemType, tostring(stumpIdx)))
                     if Network.fireBypass(BuyEvent, stumpIdx) then
                         _stats.bought = _stats.bought + 1
-                        Utils.log("INFO", "Buy remote fired successfully.")
+                        Utils.log("INFO", "Successfully purchased " .. itemType)
                     end
                 else
-                    Utils.log("ERROR", "Could not resolve stump index for " .. itemType)
+                    Utils.log("ERROR", "Failed to resolve stump index for " .. itemType)
                 end
                 
                 local proceed = getConfig("autoProceedAfterBuy")
@@ -90,12 +96,10 @@ local function processItem(item)
                 
                 if proceed then
                     local delay = getConfig("autoProceedDelay") or 1.2
-                    Utils.log("INFO", string.format("Proceeding in %s seconds...", tostring(delay)))
                     task.wait(delay)
                     Scheduler.resume("Farmer")
                     _buyLock = false
                 elseif stop then
-                    Utils.log("INFO", "Stopping sniper (Stop on Match enabled)")
                     Sniper.setEnabled(false)
                     Scheduler.resume("Farmer")
                     _buyLock = false
@@ -113,26 +117,35 @@ local function processItem(item)
 end
 
 local function processResult(result)
-    if not result or type(result) ~= "table" then
-        return false
+    if not result or type(result) ~= "table" then return false end
+
+    local bestMatch = nil
+    local maxEarnings = -1
+
+    local function evaluate(entry)
+        local matched, earnings = isMatch(entry)
+        if matched then
+            if earnings > maxEarnings then
+                maxEarnings = earnings
+                bestMatch = entry
+            end
+        end
     end
 
     if result[1] ~= nil then
-        local matched = false
         for _, entry in ipairs(result) do
-            if processItem(entry) then
-                matched = true
-                if _buyLock then break end -- Stop processing items in this result if we are buying
-            end
+            evaluate(entry)
         end
-        return matched
+    elseif result.Item then
+        evaluate(result.Item)
+    else
+        evaluate(result)
     end
 
-    if type(result.Item) == "table" then
-        return processItem(result.Item)
+    if bestMatch then
+        return processItem(bestMatch)
     end
-
-    return processItem(result)
+    return false
 end
 local function startLoop()
     if _loopActive then return end
