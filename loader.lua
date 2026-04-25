@@ -2,6 +2,19 @@ local REPO_BASES = {
     "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/main/",
     "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/master/",
 }
+local function runScript(path)
+    for _, base in ipairs(REPO_BASES) do
+        local url = base .. path .. "?t=" .. tick()
+        local ok = pcall(function()
+            local src = game:HttpGet(url)
+            loadstring(src)()
+        end)
+        if ok then
+            return true
+        end
+    end
+    return false
+end
 local function fetch(path)
     for _, base in ipairs(REPO_BASES) do
         local url = base .. path .. "?t=" .. tick()
@@ -26,8 +39,8 @@ local Network = fetch("core/network.lua")
 local Scheduler = fetch("core/scheduler.lua")
 if not Network or not Scheduler then
     step(0.3, "fallback to V1 main.lua...")
-    local Main = fetch("main.lua")
-    if not Main then
+    local ok = runScript("main.lua")
+    if not ok then
         error("FarmV2 > [fatal] failed to load core modules and main.lua fallback")
     end
     if ui then ui.finish() end
