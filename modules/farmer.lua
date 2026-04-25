@@ -60,9 +60,7 @@ local function tick()
         end
     else
         for _, entry in ipairs(allTiles) do
-            if not entry.empty then
-                table.insert(tiles, entry)
-            end
+            table.insert(tiles, entry)
         end
     end
     if #tiles == 0 then return end

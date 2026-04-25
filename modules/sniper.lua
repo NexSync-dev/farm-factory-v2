@@ -55,6 +55,10 @@ local function processItem(item)
                 task.wait(0.2)
                 if BuyEvent then
                     local buyArgs = {}
+                    local idx = item.StumpIndex or item.Index or 0
+                    if type(idx) == "number" and idx > 0 then
+                        table.insert(buyArgs, idx)
+                    end
                     table.insert(buyArgs, itemType)
                     if item.Title and item.Title ~= itemType then
                         table.insert(buyArgs, item.Title)
@@ -78,10 +82,10 @@ local function processItem(item)
                 Scheduler.resume("Farmer")
                 _buyLock = false
                 
-                if getConfig("autoProceedAfterBuy") then
+                if getConfig("stopOnMatch") then
+                    Sniper.setEnabled(false)
+                elseif getConfig("autoProceedAfterBuy") then
                     _resumeTime = os.clock() + getConfig("autoProceedDelay")
-                elseif getConfig("stopOnMatch") then
-                    Cfg.enabled = false
                 end
             end)
         elseif getConfig("stopOnMatch") then
