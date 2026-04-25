@@ -13,7 +13,7 @@ local defaults = {
     collectDelay = 0,
     useStrictMode = false,
     priorityFruits = {},
-    tpMode = "instant",
+    tpMode = "True Bypass",
     safeTpStep = 100,
 }
 local function getConfig(key)
@@ -74,24 +74,29 @@ local function tick()
     local batchCount = 0
     for _, entry in ipairs(tiles) do
         if harvested >= maxPerCycle or not getConfig("enabled") then break end
-        moveToTile(hrp, entry, tpMode)
+        
+        if tpMode ~= "True Bypass" then
+            moveToTile(hrp, entry, tpMode)
+        end
+        
         Network.fireBypass(ClickEvent, entry.tile)
         Utils.log("DEBUG", "Harvesting tile: " .. tostring(entry.tile and entry.tile.Name or "unknown"))
         harvested = harvested + 1
         batchCount = batchCount + 1
-        if tpMode ~= "True Bypass" then
-            hrp.CFrame = oldCF
+        
+        if batchCount >= batchSize then
+            batchCount = 0
             RunService.Heartbeat:Wait()
-        else
-            if batchCount >= batchSize then
-                batchCount = 0
-                RunService.Heartbeat:Wait()
-            end
         end
         if collectDelay > 0 then
             task.wait(collectDelay)
         end
     end
+    
+    if tpMode ~= "True Bypass" then
+        hrp.CFrame = oldCF
+    end
+    
     _stats.tilesThisCycle = harvested
     _stats.totalHarvested = _stats.totalHarvested + harvested
 end
