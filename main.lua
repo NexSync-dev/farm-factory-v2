@@ -195,9 +195,15 @@ task.spawn(function()
 end)
 
 local QuickBox = Tabs.Main:AddLeftGroupbox('Quick Controls')
-QuickBox:AddToggle('CollectPlants', { Text = 'Auto Collect', Default = false, Callback = function(v) Cfg.Collect = v end })
-QuickBox:AddToggle('DebugMode', { Text = 'Debug Mode', Default = true, Callback = function(v) Cfg.DebugMode = v end })
 QuickBox:AddToggle('AntiAFK', { Text = 'Anti-AFK', Default = true, Callback = function(v) Cfg.AntiAFK = v end })
+QuickBox:AddButton('Launch Advanced Roller', function()
+    local url = "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/refs/heads/master/oneclick.lua" -- User will configure this
+    if url ~= "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/refs/heads/master/oneclick.lua" then
+        loadstring(game:HttpGet(url))()
+    else
+        Library:Notify("Please configure the URL in the script first!")
+    end
+end)
 
 local FarmingBox = Tabs.Farming:AddLeftGroupbox('Harvesting')
 FarmingBox:AddSlider('MaxHarvestPerCycle', { Text = 'Max per Cycle', Default = 9999, Min = 10, Max = 9999, Rounding = 0, Callback = function(v) Cfg.MaxHarvestPerCycle = v end })
@@ -230,14 +236,6 @@ SniperBox:AddToggle('AutoBuyMatch', { Text = 'Auto Buy on Match', Default = fals
 SniperBox:AddToggle('StopOnMatch', { Text = 'Stop on Match', Default = true, Callback = function(v) Cfg.StopOnMatch = v end })
 SniperBox:AddButton('▶ Start Sniper', function() Cfg.SniperActive = true GlobalSniperLock = false end)
 SniperBox:AddButton('⏹ Stop Sniper', function() Cfg.SniperActive = false GlobalSniperLock = false end)
-SniperBox:AddButton('Auto Roller One Click', function()
-    local url = "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/refs/heads/master/oneclick.lua"
-    if url ~= "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/refs/heads/master/oneclick.lua" then
-        loadstring(game:HttpGet(url))()
-    else
-        Library:Notify("Please configure the URL in the script first!")
-    end
-end)
 
 SaveManager:SetLibrary(Library)
 SaveManager:BuildConfigSection(Tabs['UI Settings'])
