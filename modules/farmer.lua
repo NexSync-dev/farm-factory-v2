@@ -1,86 +1,104 @@
 local Farmer = {}
 local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LP = Players.LocalPlayer
-
-local ClickEvent = nil
+local Utils = nil
+local Network = nil
+local Scheduler = nil
 local Cfg = nil
-local _sniperLock = nil
-local _stats = { cycleCount = 0, totalHarvested = 0 }
-
+local ClickEvent = nil
+local _stats = { cycleCount = 0, tilesThisCycle = 0, totalHarvested = 0 }
+local defaults = {
+    enabled = false,
+    batchSize = 15,
+    maxPerCycle = 9999,
+    collectDelay = 0,
+    useStrictMode = false,
+    priorityFruits = {},
+    tpMode = "instant",
+    safeTpStep = 100,
+}
+local function getConfig(key)
+    return Cfg[key] ~= nil and Cfg[key] or defaults[key]
+end
+local function tick()
+    if not getConfig("enabled") then return end
+    local hrp = Utils.getHRP()
+    if not hrp then return end
+    local plot = Utils.getPlot()
+    if not plot then return end
+    local hrpPos = hrp.Position
+    local priorityList = getConfig("priorityFruits")
+    local strictMode = getConfig("useStrictMode")
+    local allTiles = Utils.getProcessedTiles(plot, priorityList, hrpPos)
+    local tiles = {}
+    local hasPrioritySelection = false
+    if priorityList then
+        for _, v in pairs(priorityList) do if v then hasPrioritySelection = true break end end
+    end
+    if strictMode and hasPrioritySelection then
+        for _, entry in ipairs(allTiles) do
+            if entry.priority or entry.empty then
+                table.insert(tiles, entry)
+            end
+        end
+    else
+        tiles = allTiles
+    end
+    if #tiles == 0 then return end
+    local tpMode = getConfig("tpMode")
+    local batchSize = getConfig("batchSize")
+    local maxPerCycle = getConfig("maxPerCycle")
+    local collectDelay = getConfig("collectDelay")
+    local harvested = 0
+    _stats.cycleCount = _stats.cycleCount + 1
+    local oldCF = hrp.CFrame
+    local batchCount = 0
+    for _, entry in ipairs(tiles) do
+        if harvested >= maxPerCycle or not getConfig("enabled") then break end
+        if entry.position and tpMode ~= "True Bypass" then
+            hrp.CFrame = CFrame.new(entry.position + Vector3.new(0, 3.5, 0))
+        end
+        Network.fire(ClickEvent, entry.tile)
+        harvested = harvested + 1
+        batchCount = batchCount + 1
+        if tpMode ~= "True Bypass" then
+            hrp.CFrame = oldCF
+        end
+        if batchCount >= batchSize then
+            batchCount = 0
+            RunService.Heartbeat:Wait()
+        end
+        if collectDelay > 0 then
+            task.wait(collectDelay)
+        end
+    end
+    _stats.tilesThisCycle = harvested
+    _stats.totalHarvested = _stats.totalHarvested + harvested
+end
+function Farmer.getStats()
+    return _stats
+end
+function Farmer.resetStats()
+    _stats = { cycleCount = 0, tilesThisCycle = 0, totalHarvested = 0 }
+end
+function Farmer.setEnabled(v)
+    Cfg.enabled = v
+end
+function Farmer.isEnabled()
+    return getConfig("enabled")
+end
 function Farmer.init(state)
-    Cfg = state.Config
-    _sniperLock = state.SniperLock
+    Utils = state.Utils
+    Network = state.Network
+    Scheduler = state.Scheduler
+    Cfg = state.Config.Farmer or {}
+    for k, v in pairs(defaults) do
+        if Cfg[k] == nil then Cfg[k] = v end
+    end
+    state.Config.Farmer = Cfg
     local Comms = game:GetService("ReplicatedStorage"):WaitForChild("Communication", 10)
     if Comms then
-        ClickEvent = Comms:WaitForChild("ClickPlant", 5)
+        ClickEvent = Comms:FindFirstChild("ClickPlant")
     end
+    Scheduler.register("Farmer", tick, 0.1)
 end
-
-local function getPlot()
-    local plots = workspace:FindFirstChild("Plots")
-    if not plots then return nil end
-    return plots:FindFirstChild(LP.Name) or plots:FindFirstChild(LP.DisplayName)
-end
-
-local function getPosition(obj)
-    if not obj or not obj.Parent then return nil end
-    return obj:IsA("Model") and obj:GetPivot().Position or obj:IsA("BasePart") and obj.Position or nil
-end
-
-local function shouldHarvest(tile)
-    if not Cfg.StrictFarm then return true end
-    local hasPrio = false
-    for _, v in pairs(Cfg.PriorityList) do
-        if v then hasPrio = true break end
-    end
-    if not hasPrio then return true end
-    for _, child in ipairs(tile:GetChildren()) do
-        for fruitName, enabled in pairs(Cfg.PriorityList) do
-            if enabled and (child.Name == fruitName or string.find(child.Name, fruitName, 1, true)) then
-                return true
-            end
-        end
-    end
-    return false
-end
-
-function Farmer.run(state)
-    task.spawn(function()
-        while Cfg.Running do
-            if Cfg.Collect and not _sniperLock.locked then
-                local plot = getPlot()
-                local tiles = plot and plot:FindFirstChild("Tiles")
-                local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-                if tiles and hrp then
-                    local oldCF = hrp.CFrame
-                    for _, tile in ipairs(tiles:GetChildren()) do
-                        if _sniperLock.locked or not Cfg.Collect then break end
-                        if shouldHarvest(tile) then
-                            local tPos = getPosition(tile)
-                            if tPos then
-                                if Cfg.BypassMode ~= "True Bypass" then
-                                    hrp.CFrame = CFrame.new(tPos + Vector3.new(0, 3.5, 0))
-                                end
-                                pcall(function() ClickEvent:FireServer(tile) end)
-                                if Cfg.BypassMode ~= "True Bypass" then
-                                    hrp.CFrame = oldCF
-                                end
-                                if Cfg.CollectDelay > 0 then task.wait(Cfg.CollectDelay) end
-                                RunService.Heartbeat:Wait()
-                            end
-                        end
-                    end
-                    _stats.cycleCount = _stats.cycleCount + 1
-                    _stats.totalHarvested = _stats.totalHarvested + #tiles:GetChildren()
-                end
-            end
-            task.wait(0.15)
-        end
-    end)
-end
-
-function Farmer.getStats() return _stats end
-function Farmer.resetStats() _stats = { cycleCount = 0, totalHarvested = 0 } end
-
 return Farmer
