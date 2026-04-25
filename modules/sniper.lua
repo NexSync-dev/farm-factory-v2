@@ -155,3 +155,4 @@ function Sniper.init(state)
 end
 
 return Sniper
+
