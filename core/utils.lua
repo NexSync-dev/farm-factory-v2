@@ -1,0 +1,209 @@
+--[[
+    FarmV2 — core/utils.lua
+    Shared utility functions for all modules.
+]]
+
+local Utils = {}
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LP = Players.LocalPlayer
+
+-------------------------------------------------
+-- Logging
+-------------------------------------------------
+Utils._debugEnabled = true
+
+function Utils.setDebug(enabled)
+    Utils._debugEnabled = enabled
+end
+
+function Utils.log(level, msg)
+    if not Utils._debugEnabled and level == "DEBUG" then return end
+    local prefix = ("[FarmV2][%s]"):format(level)
+    if level == "ERROR" then
+        warn(prefix .. " " .. tostring(msg))
+    else
+        print(prefix, tostring(msg))
+    end
+end
+
+-------------------------------------------------
+-- Plot helpers
+-------------------------------------------------
+function Utils.getPlot()
+    local plots = workspace:FindFirstChild("Plots")
+    if not plots then return nil end
+    return plots:FindFirstChild(LP.Name)
+        or plots:FindFirstChild(LP.DisplayName)
+end
+
+function Utils.getPosition(obj)
+    if not obj or not obj.Parent then return nil end
+    if obj:IsA("Model") then
+        local primary = obj.PrimaryPart
+        if primary then return primary.Position end
+        local pivot = obj:GetPivot()
+        return pivot and pivot.Position
+    elseif obj:IsA("BasePart") then
+        return obj.Position
+    end
+    return nil
+end
+
+-------------------------------------------------
+-- Tile utilities
+-------------------------------------------------
+-- Returns sorted list of tiles that have a harvestable plant.
+-- Tiles with priority fruits come first, then by distance to HRP.
+function Utils.getHarvestableTiles(plot, priorityList, hrpPos)
+    local tilesFolder = plot and plot:FindFirstChild("Tiles")
+    if not tilesFolder then return {} end
+
+    local result = {}
+    for _, tile in ipairs(tilesFolder:GetChildren()) do
+        -- A tile is harvestable if it has a child model (the plant)
+        local hasPlant = false
+        for _, child in ipairs(tile:GetChildren()) do
+            if child:IsA("Model") or child:IsA("BasePart") then
+                hasPlant = true
+                break
+            end
+        end
+
+        if hasPlant then
+            local pos = Utils.getPosition(tile)
+            local dist = (pos and hrpPos) and (pos - hrpPos).Magnitude or 9999
+            local isPriority = false
+            if priorityList and next(priorityList) then
+                for _, child in ipairs(tile:GetChildren()) do
+                    if priorityList[child.Name] then
+                        isPriority = true
+                        break
+                    end
+                end
+            end
+            table.insert(result, {
+                tile = tile,
+                position = pos,
+                distance = dist,
+                priority = isPriority,
+            })
+        end
+    end
+
+    -- Sort: priority first, then by distance (nearest first)
+    table.sort(result, function(a, b)
+        if a.priority ~= b.priority then
+            return a.priority  -- true before false
+        end
+        return a.distance < b.distance
+    end)
+
+    return result
+end
+
+-- Returns ALL tiles (including empty) sorted by distance.
+function Utils.getAllTiles(plot, hrpPos)
+    local tilesFolder = plot and plot:FindFirstChild("Tiles")
+    if not tilesFolder then return {} end
+
+    local result = {}
+    for _, tile in ipairs(tilesFolder:GetChildren()) do
+        local pos = Utils.getPosition(tile)
+        local dist = (pos and hrpPos) and (pos - hrpPos).Magnitude or 9999
+        table.insert(result, {
+            tile = tile,
+            position = pos,
+            distance = dist,
+        })
+    end
+
+    table.sort(result, function(a, b)
+        return a.distance < b.distance
+    end)
+
+    return result
+end
+
+-------------------------------------------------
+-- Safe teleport (step-based to reduce detection)
+-------------------------------------------------
+-- Moves HRP in steps of maxStep studs per frame to avoid
+-- server-side teleport detection / rubber-banding.
+function Utils.safeTP(hrp, targetPos, maxStep)
+    if not hrp or not hrp.Parent then return false end
+    maxStep = maxStep or 100 -- studs per step (generous for exploit context)
+
+    local startPos = hrp.Position
+    local delta = targetPos - startPos
+    local totalDist = delta.Magnitude
+
+    if totalDist <= maxStep then
+        hrp.CFrame = CFrame.new(targetPos)
+        return true
+    end
+
+    local direction = delta.Unit
+    local steps = math.ceil(totalDist / maxStep)
+
+    for i = 1, steps do
+        if not hrp or not hrp.Parent then return false end
+        local fraction = math.min(i / steps, 1)
+        local pos = startPos + direction * (totalDist * fraction)
+        hrp.CFrame = CFrame.new(pos)
+        if i < steps then
+            RunService.Heartbeat:Wait()
+        end
+    end
+
+    return true
+end
+
+-- Instant teleport (when you don't care about detection, e.g. NoClip is on)
+function Utils.instantTP(hrp, targetPos, yOffset)
+    if not hrp or not hrp.Parent then return false end
+    yOffset = yOffset or 3.5
+    hrp.CFrame = CFrame.new(targetPos + Vector3.new(0, yOffset, 0))
+    return true
+end
+
+-------------------------------------------------
+-- Character helpers
+-------------------------------------------------
+function Utils.getHRP()
+    local char = LP.Character
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+function Utils.getCharacterParts()
+    local char = LP.Character
+    if not char then return {} end
+    local parts = {}
+    for _, v in ipairs(char:GetDescendants()) do
+        if v:IsA("BasePart") then
+            table.insert(parts, v)
+        end
+    end
+    return parts
+end
+
+-------------------------------------------------
+-- Ping monitoring
+-------------------------------------------------
+function Utils.getPing()
+    local ok, ping = pcall(function()
+        local stats = game:GetService("Stats")
+        local networkStats = stats:FindFirstChild("PerformanceStats")
+        if networkStats then
+            local pingItem = networkStats:FindFirstChild("Ping")
+            if pingItem then return pingItem:GetValue() end
+        end
+        -- Fallback: try the data model directly
+        return stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+    end)
+    return ok and ping or 0
+end
+
+return Utils
