@@ -46,10 +46,15 @@ function Utils.getProcessedTiles(plot, priorityList, hrpPos)
         local isEmpty = true
         
         for _, child in ipairs(tile:GetChildren()) do
-            if child:IsA("Model") then
+            if child.Name ~= "Soil" and child.Name ~= "Base" and child.Name ~= "Hitbox" then
                 isEmpty = false
-                if hasPrio and priorityList[child.Name] then
-                    isPriority = true
+                if hasPrio then
+                    for fruitName, enabled in pairs(priorityList) do
+                        if enabled and (child.Name == fruitName or string.find(child.Name, fruitName)) then
+                            isPriority = true
+                            break
+                        end
+                    end
                 end
             end
         end

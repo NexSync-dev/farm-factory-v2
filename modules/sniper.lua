@@ -37,6 +37,8 @@ local function processResult(result)
         _lastMatchInfo = { type = itemType, earnings = itemEarnings, time = os.clock() }
         Utils.log("INFO", string.format("match: %s (%d)", itemType, itemEarnings))
         if getConfig("autoBuyMatch") then
+            Scheduler.pause("Farmer")
+            task.wait(0.2)
             local idx = item.StumpIndex or item.Index or 0
             if idx == 0 and Utils.getClosestTileIndex then
                 idx = Utils.getClosestTileIndex()
@@ -56,6 +58,7 @@ local function processResult(result)
             else
                 task.wait(getConfig("autoProceedDelay"))
             end
+            Scheduler.resume("Farmer")
         elseif getConfig("stopOnMatch") then
             Cfg.enabled = false
         end
