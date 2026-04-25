@@ -12,9 +12,10 @@ local _stats = { cycleCount = 0, tilesThisCycle = 0, totalHarvested = 0 }
 
 local defaults = {
     enabled = false,
-    firesPerCycle = 120,        -- Main speed control (higher = faster, but more lag)
+    firesPerCycle = 120,           -- Main speed control
     tpMode = "True Bypass",
-    usePlantsFolder = true,     -- Keep this on for best performance
+    useStrictMode = false,         -- If true, only harvest priority fruits
+    priorityFruits = {},           -- List of fruit names/types you want to prioritize
 }
 
 local function getConfig(key)
@@ -35,14 +36,34 @@ local function tick()
 
     if not tilesFolder then return end
 
-    -- Build list of only tiles that have plants
+    local priorityList = getConfig("priorityFruits")
+    local strictMode = getConfig("useStrictMode")
+    local hasPriority = #priorityList > 0
+
+    -- Build list of tiles to harvest
     local tilesToHarvest = {}
+
     for _, plant in ipairs(plantsFolder:GetChildren()) do
         local tileName = plant.Name
         local tile = tilesFolder:FindFirstChild(tileName) or tilesFolder:FindFirstChild(tileName, true)
         
         if tile then
-            table.insert(tilesToHarvest, tile)
+            local shouldHarvest = true
+
+            if strictMode and hasPriority then
+                -- Only harvest if this plant is in priority list
+                shouldHarvest = false
+                for _, prio in ipairs(priorityList) do
+                    if plant.Name:find(prio) or (plant:FindFirstChild("FruitType") and plant.FruitType.Value == prio) then
+                        shouldHarvest = true
+                        break
+                    end
+                end
+            end
+
+            if shouldHarvest then
+                table.insert(tilesToHarvest, tile)
+            end
         end
     end
 
@@ -57,12 +78,12 @@ local function tick()
             break 
         end
 
-        -- Main click on the tile
+        -- Main click
         pcall(function()
             Network.fireBypass(ClickEvent, tile)
         end)
 
-        -- Fallback: click visible parts inside the tile
+        -- Fallback click on visible parts
         for _, desc in ipairs(tile:GetDescendants()) do
             if desc:IsA("BasePart") and desc.Transparency < 1 then
                 pcall(function()
@@ -116,8 +137,8 @@ function Farmer.init(state)
         ClickEvent = Comms:FindFirstChild("ClickPlant")
     end
 
-    -- Register fast scheduler
-    Scheduler.register("Farmer", tick, 0.01)  -- 100Hz
+    -- Register scheduler
+    Scheduler.register("Farmer", tick, 0.01)
 end
 
 return Farmer
