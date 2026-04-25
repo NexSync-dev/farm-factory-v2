@@ -64,7 +64,7 @@ function Scheduler.start()
                         if not ok then
                             mod.errorCount = mod.errorCount + 1
                             if Utils then
-                                Utils.log("ERROR", string.format("Module '%s' error (%d/%d): %s", name, mod.errorCount, mod.maxErrors, tostring(err)))
+                                Utils.log("ERROR", string.format("module '%s' error (%d/%d): %s", name, mod.errorCount, mod.maxErrors, tostring(err)))
                             end
                             if mod.errorCount >= mod.maxErrors then
                                 mod.paused = true

@@ -8,7 +8,7 @@ function Utils.setDebug(enabled)
 end
 function Utils.log(level, msg)
     if not Utils._debugEnabled and level == "DEBUG" then return end
-    local prefix = string.format("[FarmV2][%s]", level)
+    local prefix = string.format("FarmV2 > [%s]", level:lower())
     if level == "ERROR" then
         warn(prefix .. " " .. tostring(msg))
     else

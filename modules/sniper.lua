@@ -35,20 +35,17 @@ local function processResult(result)
     if isMatch then
         _stats.matches = _stats.matches + 1
         _lastMatchInfo = { type = itemType, earnings = itemEarnings, time = os.clock() }
-        Utils.log("INFO", string.format("🎯 SNIPER MATCH: %s (earnings: %d)", itemType, itemEarnings))
+        Utils.log("INFO", string.format("match: %s (%d)", itemType, itemEarnings))
         if getConfig("autoBuyMatch") then
             local idx = item.StumpIndex or item.Index or 0
             if BuyEvent then
-                Utils.log("DEBUG", string.format("🛒 Attempting to buy item at index %s", tostring(idx)))
-                local buyOk = Network.fire(BuyEvent, idx)
+                local buyOk = Network.fire(BuyEvent, true, idx)
                 if buyOk then
                     _stats.bought = _stats.bought + 1
-                    Utils.log("INFO", string.format("💰 Bought %s successfully", itemType))
+                    Utils.log("INFO", string.format("bought %s (idx %s)", itemType, tostring(idx)))
                 else
-                    Utils.log("ERROR", string.format("❌ Failed to buy %s", itemType))
+                    Utils.log("ERROR", "buy failed for " .. itemType)
                 end
-            else
-                Utils.log("ERROR", "❌ BuyEvent (BuySeeds) not found")
             end
             if getConfig("stopOnMatch") then
                 Cfg.enabled = false
@@ -65,7 +62,8 @@ end
 local function tick()
     if not getConfig("enabled") then return end
     if not RollEvent then return end
-    local ok, result = Network.invoke(RollEvent, 2)
+    local isInstant = getConfig("instantMode")
+    local ok, result = Network.invoke(RollEvent, 2, isInstant)
     if ok and result then
         _stats.totalRolls = _stats.totalRolls + 1
         processResult(result)
@@ -83,15 +81,19 @@ function Sniper.resetStats()
 end
 function Sniper.setEnabled(v)
     Cfg.enabled = v
+    if v then
+        local interval = getConfig("instantMode") and 0 or getConfig("rollSpeed")
+        Scheduler.register("Sniper", tick, interval)
+    end
 end
 function Sniper.isEnabled()
     return getConfig("enabled")
 end
 function Sniper.start()
-    Cfg.enabled = true
+    Sniper.setEnabled(true)
 end
 function Sniper.stop()
-    Cfg.enabled = false
+    Sniper.setEnabled(false)
 end
 function Sniper.init(state)
     Utils = state.Utils

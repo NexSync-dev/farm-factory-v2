@@ -9,8 +9,8 @@ local ClickEvent = nil
 local _stats = { cycleCount = 0, tilesThisCycle = 0, totalHarvested = 0 }
 local defaults = {
     enabled = false,
-    batchSize = 10,
-    clusterRadius = 20,
+    batchSize = 15,
+    clusterRadius = 25,
     maxPerCycle = 9999,
     collectDelay = 0,
     useStrictMode = false,
@@ -23,7 +23,7 @@ local function getConfig(key)
 end
 local function teleportTo(hrp, pos)
     local mode = getConfig("tpMode")
-    if mode == "none" then return end
+    if mode == "True Bypass" then return end
     if mode == "safe" then
         Utils.safeTP(hrp, pos, getConfig("safeTpStep"))
     else
@@ -75,7 +75,7 @@ local function tick()
     end
     if #tiles == 0 then return end
     local tpMode = getConfig("tpMode")
-    local clusters = clusterTiles(tiles, tpMode == "none" and 9999 or getConfig("clusterRadius"))
+    local clusters = clusterTiles(tiles, tpMode == "True Bypass" and 9999 or getConfig("clusterRadius"))
     local batchSize = getConfig("batchSize")
     local maxPerCycle = getConfig("maxPerCycle")
     local collectDelay = getConfig("collectDelay")
@@ -86,7 +86,7 @@ local function tick()
         if harvested >= maxPerCycle then break end
         if not getConfig("enabled") then break end
         local anchorPos = cluster[1].position
-        if anchorPos and tpMode ~= "none" then
+        if anchorPos and tpMode ~= "True Bypass" then
             teleportTo(hrp, anchorPos)
         end
         local batchCount = 0
@@ -104,14 +104,14 @@ local function tick()
                 task.wait(collectDelay)
             end
         end
-        if tpMode ~= "none" then RunService.Heartbeat:Wait() end
+        if tpMode ~= "True Bypass" then RunService.Heartbeat:Wait() end
     end
-    if tpMode ~= "none" and hrp and hrp.Parent then
+    if tpMode ~= "True Bypass" and hrp and hrp.Parent then
         hrp.CFrame = oldCF
     end
     _stats.tilesThisCycle = harvested
     _stats.totalHarvested = _stats.totalHarvested + harvested
-    Utils.log("DEBUG", string.format("Farmer cycle #%d: harvested %d tiles", _stats.cycleCount, harvested))
+    Utils.log("DEBUG", string.format("farm cycle #%d done: %d tiles", _stats.cycleCount, harvested))
 end
 function Farmer.getStats()
     return _stats

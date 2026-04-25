@@ -26,7 +26,8 @@ local function refillBucket(bucket)
     bucket.lastRefill = now
     bucket.tokens = math.min(bucket.maxTokens, bucket.tokens + elapsed * bucket.refillRate)
 end
-local function consumeToken(remoteName)
+local function consumeToken(remoteName, ignoreLimits)
+    if ignoreLimits then return true end
     local bucket = getBucket(remoteName)
     refillBucket(bucket)
     local ping = Utils and Utils.getPing() or 0
@@ -39,9 +40,10 @@ local function consumeToken(remoteName)
     end
     return false
 end
-local function waitForToken(remoteName)
+local function waitForToken(remoteName, ignoreLimits)
+    if ignoreLimits then return true end
     local attempts = 0
-    while not consumeToken(remoteName) do
+    while not consumeToken(remoteName, ignoreLimits) do
         RunService.Heartbeat:Wait()
         attempts = attempts + 1
         if attempts > 300 then
@@ -60,9 +62,9 @@ function Network.resetStats()
     stats.totalErrors = 0
     stats.throttled = 0
 end
-function Network.fire(remote, ...)
+function Network.fire(remote, ignoreLimits, ...)
     local name = remote.Name
-    if not waitForToken(name) then
+    if not waitForToken(name, ignoreLimits) then
         stats.throttled = stats.throttled + 1
         return false
     end
@@ -73,14 +75,14 @@ function Network.fire(remote, ...)
         stats.totalFired = stats.totalFired + 1
     else
         stats.totalErrors = stats.totalErrors + 1
-        if Utils then Utils.log("ERROR", "FireServer failed [" .. name .. "]: " .. tostring(err)) end
+        if Utils then Utils.log("ERROR", "remote fire failed [" .. name .. "]: " .. tostring(err)) end
     end
     return ok
 end
-function Network.invoke(remote, maxRetries, ...)
+function Network.invoke(remote, maxRetries, ignoreLimits, ...)
     local name = remote.Name
     maxRetries = maxRetries or 3
-    if not waitForToken(name) then
+    if not waitForToken(name, ignoreLimits) then
         stats.throttled = stats.throttled + 1
         return false, nil
     end
@@ -95,10 +97,10 @@ function Network.invoke(remote, maxRetries, ...)
         else
             stats.totalErrors = stats.totalErrors + 1
             if Utils then
-                Utils.log("WARN", string.format("InvokeServer attempt %d/%d failed [%s]: %s", attempt, maxRetries, name, tostring(result)))
+                Utils.log("WARN", string.format("remote invoke failed [%s] (%d/%d): %s", name, attempt, maxRetries, tostring(result)))
             end
             if attempt < maxRetries then
-                task.wait(0.5 * attempt)
+                task.wait(0.1 * attempt)
             end
         end
     end
@@ -107,7 +109,7 @@ end
 function Network.fireBatch(remote, argsList, batchSize)
     batchSize = batchSize or 5
     for i, args in ipairs(argsList) do
-        Network.fire(remote, unpack(args))
+        Network.fire(remote, false, unpack(args))
         if i % batchSize == 0 then
             RunService.Heartbeat:Wait()
         end
