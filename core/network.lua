@@ -62,9 +62,9 @@ function Network.resetStats()
     stats.totalErrors = 0
     stats.throttled = 0
 end
-function Network.fire(remote, ignoreLimits, ...)
+function Network.fire(remote, ...)
     local name = remote.Name
-    if not waitForToken(name, ignoreLimits) then
+    if not waitForToken(name, false) then
         stats.throttled = stats.throttled + 1
         return false
     end
@@ -79,10 +79,23 @@ function Network.fire(remote, ignoreLimits, ...)
     end
     return ok
 end
-function Network.invoke(remote, maxRetries, ignoreLimits, ...)
+function Network.fireBypass(remote, ...)
+    local name = remote.Name
+    local ok, err = pcall(function(...)
+        remote:FireServer(...)
+    end, ...)
+    if ok then
+        stats.totalFired = stats.totalFired + 1
+    else
+        stats.totalErrors = stats.totalErrors + 1
+        if Utils then Utils.log("ERROR", "remote bypass fire failed [" .. name .. "]: " .. tostring(err)) end
+    end
+    return ok
+end
+function Network.invoke(remote, maxRetries, ...)
     local name = remote.Name
     maxRetries = maxRetries or 3
-    if not waitForToken(name, ignoreLimits) then
+    if not waitForToken(name, false) then
         stats.throttled = stats.throttled + 1
         return false, nil
     end
@@ -106,10 +119,33 @@ function Network.invoke(remote, maxRetries, ignoreLimits, ...)
     end
     return false, nil
 end
+function Network.invokeBypass(remote, maxRetries, ...)
+    local name = remote.Name
+    maxRetries = maxRetries or 3
+    local args = {...}
+    for attempt = 1, maxRetries do
+        local ok, result = pcall(function()
+            return remote:InvokeServer(unpack(args))
+        end)
+        if ok then
+            stats.totalInvoked = stats.totalInvoked + 1
+            return true, result
+        else
+            stats.totalErrors = stats.totalErrors + 1
+            if Utils then
+                Utils.log("WARN", string.format("remote bypass invoke failed [%s] (%d/%d): %s", name, attempt, maxRetries, tostring(result)))
+            end
+            if attempt < maxRetries then
+                task.wait(0.1 * attempt)
+            end
+        end
+    end
+    return false, nil
+end
 function Network.fireBatch(remote, argsList, batchSize)
     batchSize = batchSize or 5
     for i, args in ipairs(argsList) do
-        Network.fire(remote, false, unpack(args))
+        Network.fire(remote, unpack(args))
         if i % batchSize == 0 then
             RunService.Heartbeat:Wait()
         end

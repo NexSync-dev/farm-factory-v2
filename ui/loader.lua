@@ -23,14 +23,25 @@ function Loader.show()
     title.TextSize = 20
     title.Parent = frame
     local status = Instance.new("TextLabel")
-    status.Size = UDim2.new(1, 0, 0, 20)
-    status.Position = UDim2.new(0, 0, 0.4, 0)
+    status.Size = UDim2.new(1, -40, 0, 20)
+    status.Position = UDim2.new(0, 40, 0.4, 0)
     status.BackgroundTransparency = 1
     status.Text = "initializing modules..."
     status.TextColor3 = Color3.fromRGB(180, 180, 180)
     status.Font = Enum.Font.Gotham
     status.TextSize = 14
+    status.TextXAlignment = Enum.TextXAlignment.Left
     status.Parent = frame
+    local spinner = Instance.new("ImageLabel")
+    spinner.Size = UDim2.new(0, 20, 0, 20)
+    spinner.Position = UDim2.new(0, 15, 0.4, 0)
+    spinner.BackgroundTransparency = 1
+    spinner.Image = "rbxassetid://3593380982" -- Generic circle
+    spinner.ImageColor3 = Color3.fromRGB(80, 200, 120)
+    spinner.Parent = frame
+    local spinTweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1)
+    local spinTween = TweenService:Create(spinner, spinTweenInfo, {Rotation = 360})
+    spinTween:Play()
     local barBg = Instance.new("Frame")
     barBg.Size = UDim2.new(0.8, 0, 0, 6)
     barBg.Position = UDim2.new(0.1, 0, 0.75, 0)

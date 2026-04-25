@@ -38,8 +38,12 @@ local function processResult(result)
         Utils.log("INFO", string.format("match: %s (%d)", itemType, itemEarnings))
         if getConfig("autoBuyMatch") then
             local idx = item.StumpIndex or item.Index or 0
+            if idx == 0 and Utils.getClosestTileIndex then
+                idx = Utils.getClosestTileIndex()
+                Utils.log("DEBUG", "fallback index used: " .. tostring(idx))
+            end
             if BuyEvent then
-                local buyOk = Network.fire(BuyEvent, true, idx)
+                local buyOk = Network.fireBypass(BuyEvent, idx)
                 if buyOk then
                     _stats.bought = _stats.bought + 1
                     Utils.log("INFO", string.format("bought %s (idx %s)", itemType, tostring(idx)))
@@ -63,7 +67,12 @@ local function tick()
     if not getConfig("enabled") then return end
     if not RollEvent then return end
     local isInstant = getConfig("instantMode")
-    local ok, result = Network.invoke(RollEvent, 2, isInstant)
+    local ok, result
+    if isInstant then
+        ok, result = Network.invokeBypass(RollEvent, 2)
+    else
+        ok, result = Network.invoke(RollEvent, 2)
+    end
     if ok and result then
         _stats.totalRolls = _stats.totalRolls + 1
         processResult(result)

@@ -82,6 +82,27 @@ function Utils.getAllTiles(plot, hrpPos)
     end)
     return result
 end
+function Utils.getClosestTileIndex()
+    local plot = Utils.getPlot()
+    local hrp = Utils.getHRP()
+    if not plot or not hrp then return 0 end
+    local tilesFolder = plot:FindFirstChild("Tiles")
+    if not tilesFolder then return 0 end
+    local closestDist = 9999
+    local closestIdx = 0
+    for _, tile in ipairs(tilesFolder:GetChildren()) do
+        local pos = Utils.getPosition(tile)
+        if pos then
+            local dist = (pos - hrp.Position).Magnitude
+            if dist < closestDist then
+                closestDist = dist
+                local num = string.match(tile.Name, "%d+")
+                if num then closestIdx = tonumber(num) end
+            end
+        end
+    end
+    return closestIdx
+end
 function Utils.safeTP(hrp, targetPos, maxStep)
     if not hrp or not hrp.Parent then return false end
     maxStep = maxStep or 100
