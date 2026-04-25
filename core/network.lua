@@ -1,4 +1,5 @@
 local Network = {}
+local unpackArgs = table.unpack or unpack
 
 local _state = nil
 local _limits = {}
@@ -61,8 +62,9 @@ function Network.fire(remote, ...)
         return false
     end
 
+    local args = table.pack(...)
     local ok = pcall(function()
-        remote:FireServer(...)
+        remote.FireServer(remote, unpackArgs(args, 1, args.n))
     end)
     if ok then
         _stats.totalFired = _stats.totalFired + 1
@@ -81,8 +83,9 @@ function Network.invoke(remote, ...)
         return false, nil
     end
 
+    local args = table.pack(...)
     local ok, result = pcall(function()
-        return remote:InvokeServer(...)
+        return remote.InvokeServer(remote, unpackArgs(args, 1, args.n))
     end)
     if ok then
         _stats.totalInvoked = _stats.totalInvoked + 1
@@ -96,8 +99,9 @@ function Network.fireBypass(remote, ...)
     if not remote then
         return false
     end
+    local args = table.pack(...)
     local ok = pcall(function()
-        remote:FireServer(...)
+        remote.FireServer(remote, unpackArgs(args, 1, args.n))
     end)
     if ok then
         _stats.totalFired = _stats.totalFired + 1
@@ -111,8 +115,9 @@ function Network.invokeBypass(remote, ...)
     if not remote then
         return false, nil
     end
+    local args = table.pack(...)
     local ok, result = pcall(function()
-        return remote:InvokeServer(...)
+        return remote.InvokeServer(remote, unpackArgs(args, 1, args.n))
     end)
     if ok then
         _stats.totalInvoked = _stats.totalInvoked + 1
