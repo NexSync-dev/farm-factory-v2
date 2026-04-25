@@ -81,10 +81,12 @@ local function tick()
         batchCount = batchCount + 1
         if tpMode ~= "True Bypass" then
             hrp.CFrame = oldCF
-        end
-        if batchCount >= batchSize then
-            batchCount = 0
             RunService.Heartbeat:Wait()
+        else
+            if batchCount >= batchSize then
+                batchCount = 0
+                RunService.Heartbeat:Wait()
+            end
         end
         if collectDelay > 0 then
             task.wait(collectDelay)

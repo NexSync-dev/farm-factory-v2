@@ -54,23 +54,11 @@ local function processItem(item)
                 Scheduler.pause("Farmer")
                 task.wait(0.2)
                 if BuyEvent then
-                    local buyArgs = {}
                     local idx = item.StumpIndex or item.Index or 0
-                    if type(idx) == "number" and idx > 0 then
-                        table.insert(buyArgs, idx)
-                    end
-                    table.insert(buyArgs, itemType)
-                    if item.Title and item.Title ~= itemType then
-                        table.insert(buyArgs, item.Title)
-                    end
-
                     local bought = false
-                    for _, arg in ipairs(buyArgs) do
-                        if Network.fireBypass(BuyEvent, arg) then
-                            bought = true
-                            Utils.log("INFO", string.format("buy attempt %s with arg %s", itemType, tostring(arg)))
-                            break
-                        end
+                    if Network.fireBypass(BuyEvent, idx) then
+                        bought = true
+                        Utils.log("INFO", string.format("buy attempt %s with idx %s", itemType, tostring(idx)))
                     end
 
                     if bought then
