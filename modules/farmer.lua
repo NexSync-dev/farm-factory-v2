@@ -19,6 +19,22 @@ local defaults = {
 local function getConfig(key)
     return Cfg[key] ~= nil and Cfg[key] or defaults[key]
 end
+local function moveToTile(hrp, entry, tpMode)
+    if tpMode == "True Bypass" then
+        return true
+    end
+    if not entry.position then
+        return false
+    end
+    if tpMode == "safe" and Utils.safeTP then
+        return Utils.safeTP(hrp, entry.position + Vector3.new(0, 3.5, 0), getConfig("safeTpStep"))
+    end
+    if Utils.instantTP then
+        return Utils.instantTP(hrp, entry.position, 3.5)
+    end
+    hrp.CFrame = CFrame.new(entry.position + Vector3.new(0, 3.5, 0))
+    return true
+end
 local function tick()
     if not getConfig("enabled") then return end
     local hrp = Utils.getHRP()
@@ -36,12 +52,16 @@ local function tick()
     end
     if strictMode and hasPrioritySelection then
         for _, entry in ipairs(allTiles) do
-            if entry.priority or entry.empty then
+            if entry.priority and not entry.empty then
                 table.insert(tiles, entry)
             end
         end
     else
-        tiles = allTiles
+        for _, entry in ipairs(allTiles) do
+            if not entry.empty then
+                table.insert(tiles, entry)
+            end
+        end
     end
     if #tiles == 0 then return end
     local tpMode = getConfig("tpMode")
@@ -54,9 +74,7 @@ local function tick()
     local batchCount = 0
     for _, entry in ipairs(tiles) do
         if harvested >= maxPerCycle or not getConfig("enabled") then break end
-        if entry.position and tpMode ~= "True Bypass" then
-            hrp.CFrame = CFrame.new(entry.position + Vector3.new(0, 3.5, 0))
-        end
+        moveToTile(hrp, entry, tpMode)
         Network.fire(ClickEvent, entry.tile)
         harvested = harvested + 1
         batchCount = batchCount + 1

@@ -1,9 +1,19 @@
-local REPO_BASE = "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/master/"
+local REPO_BASES = {
+    "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/main/",
+    "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/master/",
+}
 local function fetch(path)
-    local url = REPO_BASE .. path .. "?t=" .. tick()
-    local ok, result = pcall(function() return loadstring(game:HttpGet(url))() end)
-    if not ok then return nil end
-    return result
+    for _, base in ipairs(REPO_BASES) do
+        local url = base .. path .. "?t=" .. tick()
+        local ok, result = pcall(function()
+            local src = game:HttpGet(url)
+            return loadstring(src)()
+        end)
+        if ok and result then
+            return result
+        end
+    end
+    return nil
 end
 local LoaderUI = fetch("ui/loader.lua")
 local ui = nil
@@ -14,6 +24,15 @@ local Utils = fetch("core/utils.lua")
 if not Utils then error("FarmV2 > [fatal] failed to load core/utils.lua") end
 local Network = fetch("core/network.lua")
 local Scheduler = fetch("core/scheduler.lua")
+if not Network or not Scheduler then
+    step(0.3, "fallback to V1 main.lua...")
+    local Main = fetch("main.lua")
+    if not Main then
+        error("FarmV2 > [fatal] failed to load core modules and main.lua fallback")
+    end
+    if ui then ui.finish() end
+    return
+end
 step(0.3, "starting engine...")
 local State = { Utils = Utils, Network = Network, Scheduler = Scheduler, Config = { Farmer = {}, Sniper = {}, AutoSell = {}, Upgrades = {}, AntiAFK = {} }, _connections = {} }
 Network.init(State)
@@ -25,11 +44,15 @@ for i, path in ipairs(modules) do
     step(0.5 + (i/#modules)*0.3, "loading " .. path)
     local mod = fetch(path)
     if mod then
-        table.insert(loaded, mod)
+        loaded[path] = mod
         pcall(function() mod.init(State) end)
     end
 end
-State.Farmer, State.Sniper, State.AutoSell, State.Upgrades, State.AntiAFK = loaded[1], loaded[2], loaded[3], loaded[4], loaded[5]
+State.Farmer = loaded["modules/farmer.lua"]
+State.Sniper = loaded["modules/sniper.lua"]
+State.AutoSell = loaded["modules/autosell.lua"]
+State.Upgrades = loaded["modules/upgrades.lua"]
+State.AntiAFK = loaded["modules/antiafk.lua"]
 step(0.9, "building gui...")
 local GUI = fetch("ui/gui.lua")
 if GUI then pcall(function() GUI.build(State) end) end

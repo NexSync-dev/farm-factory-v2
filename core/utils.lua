@@ -76,7 +76,7 @@ function Utils.getProcessedTiles(plot, priorityList, hrpPos)
     end
     table.sort(result, function(a, b)
         if a.priority ~= b.priority then return a.priority end
-        if a.empty ~= b.empty then return a.empty end
+        if a.empty ~= b.empty then return not a.empty end
         return a.distance < b.distance
     end)
     return result

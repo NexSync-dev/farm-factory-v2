@@ -32,7 +32,14 @@ function GUI.build(state)
     local StatusBox = Tabs.Dashboard:AddLeftGroupbox("Status")
     StatusBox:AddToggle("MasterToggle", { Text = "▶ Master Enable", Default = true, Callback = function(v) if v then Scheduler.start() else Scheduler.stop() end end })
     local statsLabel = StatusBox:AddLabel("Loading stats...")
-    StatusBox:AddButton({ Text = "🔄 Reset Stats", Func = function() Farmer.resetStats() Sniper.resetStats() Network.resetStats() end })
+    StatusBox:AddButton({
+        Text = "🔄 Reset Stats",
+        Func = function()
+            if Farmer and Farmer.resetStats then Farmer.resetStats() end
+            if Sniper and Sniper.resetStats then Sniper.resetStats() end
+            if Network and Network.resetStats then Network.resetStats() end
+        end
+    })
     local InfoBox = Tabs.Dashboard:AddRightGroupbox("Info")
     InfoBox:AddLabel("FarmV2 — Modular Rewrite")
     InfoBox:AddLabel("Game: Build A Farm Factory 🌱")
@@ -58,34 +65,42 @@ function GUI.build(state)
     SniperCtrl:AddToggle("AutoBuyMatch", { Text = "🛒 Auto Buy on Match", Default = Config.Sniper.autoBuyMatch or false, Callback = function(v) Config.Sniper.autoBuyMatch = v end })
     SniperCtrl:AddToggle("StopOnMatch", { Text = "⏸ Stop on Match", Default = Config.Sniper.stopOnMatch or true, Callback = function(v) Config.Sniper.stopOnMatch = v end })
     SniperCtrl:AddSlider("AutoProceedDelay", { Text = "Proceed Delay (s)", Default = Config.Sniper.autoProceedDelay or 1.2, Min = 0.1, Max = 5, Rounding = 1, Callback = function(v) Config.Sniper.autoProceedDelay = v end })
-    SniperCtrl:AddButton({ Text = "▶ Start Sniper", Func = function() Sniper.start() end })
-    SniperCtrl:AddButton({ Text = "⏹ Stop Sniper", Func = function() Sniper.stop() end })
+    SniperCtrl:AddButton({ Text = "▶ Start Sniper", Func = function() if Sniper and Sniper.start then Sniper.start() end end })
+    SniperCtrl:AddButton({ Text = "⏹ Stop Sniper", Func = function() if Sniper and Sniper.stop then Sniper.stop() end end })
     local sniperStatsLabel = SniperCtrl:AddLabel("Rolls: 0 | Matches: 0 | Bought: 0")
     local SellBox = Tabs.Economy:AddLeftGroupbox("Auto Sell")
-    SellBox:AddToggle("AutoSellEnabled", { Text = "💵 Auto Sell", Default = Config.AutoSell.enabled or false, Callback = function(v) Config.AutoSell.enabled = v end })
-    SellBox:AddSlider("SellInterval", { Text = "Sell Interval (s)", Default = Config.AutoSell.sellInterval or 0.6, Min = 0.1, Max = 5, Rounding = 2, Callback = function(v) Config.AutoSell.sellInterval = v; Scheduler.setInterval("AutoSell", v) end })
+    if AutoSell then
+        SellBox:AddToggle("AutoSellEnabled", { Text = "💵 Auto Sell", Default = Config.AutoSell.enabled or false, Callback = function(v) Config.AutoSell.enabled = v end })
+        SellBox:AddSlider("SellInterval", { Text = "Sell Interval (s)", Default = Config.AutoSell.sellInterval or 0.6, Min = 0.1, Max = 5, Rounding = 2, Callback = function(v) Config.AutoSell.sellInterval = v; Scheduler.setInterval("AutoSell", v) end })
+    else
+        SellBox:AddLabel("AutoSell module unavailable")
+    end
     local UpgradeBox = Tabs.Economy:AddRightGroupbox("Auto Upgrades")
-    for _, name in ipairs(Upgrades.getUpgradeNames()) do
-        UpgradeBox:AddToggle("Auto" .. name, { Text = "⬆ Auto " .. name, Default = Config.Upgrades[name] or false, Callback = function(v) Upgrades.setUpgrade(name, v) end })
+    if Upgrades and Upgrades.getUpgradeNames then
+        for _, name in ipairs(Upgrades.getUpgradeNames()) do
+            UpgradeBox:AddToggle("Auto" .. name, { Text = "⬆ Auto " .. name, Default = Config.Upgrades[name] or false, Callback = function(v) Upgrades.setUpgrade(name, v) end })
+        end
+    else
+        UpgradeBox:AddLabel("Upgrades module unavailable")
     end
     local GenBox = Tabs.Settings:AddLeftGroupbox("General")
-    GenBox:AddToggle("AntiAFK", { Text = "🛡 Anti-AFK", Default = Config.AntiAFK.antiAFK ~= false, Callback = function(v) AntiAFK.setAntiAFK(v) end })
-    GenBox:AddToggle("NoClip", { Text = "👻 NoClip", Default = Config.AntiAFK.noClip ~= false, Callback = function(v) AntiAFK.setNoClip(v) end })
+    GenBox:AddToggle("AntiAFK", { Text = "🛡 Anti-AFK", Default = Config.AntiAFK.antiAFK ~= false, Callback = function(v) if AntiAFK and AntiAFK.setAntiAFK then AntiAFK.setAntiAFK(v) end end })
+    GenBox:AddToggle("NoClip", { Text = "👻 NoClip", Default = Config.AntiAFK.noClip ~= false, Callback = function(v) if AntiAFK and AntiAFK.setNoClip then AntiAFK.setNoClip(v) end end })
     GenBox:AddToggle("DebugMode", { Text = "🐛 Debug Logging", Default = true, Callback = function(v) Utils.setDebug(v) end })
     local NetBox = Tabs.Settings:AddRightGroupbox("Network Tuning")
-    NetBox:AddSlider("ClickRate", { Text = "ClickPlant Rate", Default = 30, Min = 5, Max = 60, Rounding = 0, Callback = function(v) Network.setLimit("ClickPlant", v, v) end })
-    NetBox:AddSlider("RollRate", { Text = "DoRoll Rate", Default = 20, Min = 5, Max = 40, Rounding = 0, Callback = function(v) Network.setLimit("DoRoll", v, v) end })
-    NetBox:AddSlider("SellRate", { Text = "SellCrate Rate", Default = 5, Min = 1, Max = 20, Rounding = 0, Callback = function(v) Network.setLimit("SellCrate", v, v) end })
+    NetBox:AddSlider("ClickRate", { Text = "ClickPlant Rate", Default = 30, Min = 5, Max = 60, Rounding = 0, Callback = function(v) if Network and Network.setLimit then Network.setLimit("ClickPlant", v, v) end end })
+    NetBox:AddSlider("RollRate", { Text = "DoRoll Rate", Default = 20, Min = 5, Max = 40, Rounding = 0, Callback = function(v) if Network and Network.setLimit then Network.setLimit("DoRoll", v, v) end end })
+    NetBox:AddSlider("SellRate", { Text = "SellCrate Rate", Default = 5, Min = 1, Max = 20, Rounding = 0, Callback = function(v) if Network and Network.setLimit then Network.setLimit("SellCrate", v, v) end end })
     SaveManager:SetLibrary(Library)
     SaveManager:BuildConfigSection(Tabs.Settings)
     ThemeManager:SetLibrary(Library)
     ThemeManager:ApplyToTab(Tabs.Settings)
     task.spawn(function()
         while Library and Scheduler.isAlive() do
-            local farmerStats = Farmer.getStats()
-            local netStats = Network.getStats()
+            local farmerStats = (Farmer and Farmer.getStats and Farmer.getStats()) or { totalHarvested = 0, cycleCount = 0 }
+            local netStats = (Network and Network.getStats and Network.getStats()) or { totalFired = 0, totalInvoked = 0, totalErrors = 0 }
             local ping = Utils.getPing()
-            local sniperStats = Sniper.getStats()
+            local sniperStats = (Sniper and Sniper.getStats and Sniper.getStats()) or { totalRolls = 0, matches = 0, bought = 0 }
             pcall(function()
                 statsLabel:SetText(string.format("🌾 Harvested: %d | 🔄 Cycles: %d\n📡 Ping: %dms | 🌐 Fired: %d | ❌ Errors: %d", farmerStats.totalHarvested, farmerStats.cycleCount, ping, netStats.totalFired + netStats.totalInvoked, netStats.totalErrors))
                 sniperStatsLabel:SetText(string.format("🎲 Rolls: %d | 🎯 Matches: %d | 🛒 Bought: %d", sniperStats.totalRolls, sniperStats.matches, sniperStats.bought))

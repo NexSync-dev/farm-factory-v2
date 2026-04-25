@@ -22,10 +22,13 @@ local function getConfig(key)
     return Cfg[key] ~= nil and Cfg[key] or defaults[key]
 end
 local function processResult(result)
-    if not result or type(result) ~= "table" or not result[1] then
+    if not result or type(result) ~= "table" then
         return false
     end
-    local item = result[1]
+    local item = result[1] or result.Item or result
+    if type(item) ~= "table" then
+        return false
+    end
     Utils.log("DEBUG", "Result Item: " .. Utils.dump(item))
     local itemType = item.Type or item.Title or ""
     local itemEarnings = tonumber(item.Earnings) or 0
@@ -105,6 +108,12 @@ function Sniper.setEnabled(v)
         local interval = getConfig("instantMode") and 0 or getConfig("rollSpeed")
         Scheduler.setInterval("Sniper", interval)
     end
+end
+function Sniper.start()
+    Sniper.setEnabled(true)
+end
+function Sniper.stop()
+    Sniper.setEnabled(false)
 end
 function Sniper.isEnabled()
     return getConfig("enabled")
