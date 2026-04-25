@@ -28,14 +28,41 @@ function Loader.show()
     title.Font = Enum.Font.SourceSansBold
     title.TextSize = 24
     title.Parent = frame
-    local spinner = Instance.new("ImageLabel")
-    spinner.Size = UDim2.new(0, 60, 0, 60)
-    spinner.Position = UDim2.new(0.5, -30, 0.5, -30)
+    local spinner = Instance.new("Frame")
+    spinner.Size = UDim2.new(0, 64, 0, 64)
+    spinner.Position = UDim2.new(0.5, -32, 0.5, -32)
     spinner.BackgroundTransparency = 1
-    spinner.Image = "rbxassetid://3593380982"
-    spinner.ImageColor3 = Color3.fromRGB(80, 200, 120)
+    spinner.BorderSizePixel = 0
     spinner.Parent = frame
-    local spinTween = TweenService:Create(spinner, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1), {Rotation = 360})
+
+    local ring = Instance.new("Frame")
+    ring.Size = UDim2.new(1, 0, 1, 0)
+    ring.BackgroundTransparency = 1
+    ring.BorderSizePixel = 0
+    ring.Parent = spinner
+
+    local ringCorner = Instance.new("UICorner")
+    ringCorner.CornerRadius = UDim.new(1, 0)
+    ringCorner.Parent = ring
+
+    local ringStroke = Instance.new("UIStroke")
+    ringStroke.Thickness = 3
+    ringStroke.Color = Color3.fromRGB(80, 200, 120)
+    ringStroke.Transparency = 0.2
+    ringStroke.Parent = ring
+
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.new(0, 10, 0, 10)
+    dot.Position = UDim2.new(0.5, -5, 0, -2)
+    dot.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
+    dot.BorderSizePixel = 0
+    dot.Parent = spinner
+
+    local dotCorner = Instance.new("UICorner")
+    dotCorner.CornerRadius = UDim.new(1, 0)
+    dotCorner.Parent = dot
+
+    local spinTween = TweenService:Create(spinner, TweenInfo.new(0.8, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1), {Rotation = 360})
     spinTween:Play()
     local status = Instance.new("TextLabel")
     status.Size = UDim2.new(1, 0, 0, 20)
@@ -57,7 +84,8 @@ function Loader.show()
             TweenService:Create(UIStroke, TweenInfo.new(0.5), {Transparency = 1}):Play()
             TweenService:Create(title, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
             TweenService:Create(status, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
-            TweenService:Create(spinner, TweenInfo.new(0.5), {ImageTransparency = 1}):Play()
+            TweenService:Create(dot, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+            TweenService:Create(ringStroke, TweenInfo.new(0.5), {Transparency = 1}):Play()
             task.wait(0.5)
             sg:Destroy()
         end

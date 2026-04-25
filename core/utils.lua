@@ -48,6 +48,22 @@ function Utils.getProcessedTiles(plot, priorityList, hrpPos)
     if not tilesFolder then return {} end
     local result = {}
     local hasPrio = (priorityList and next(priorityList) ~= nil)
+    local function normalize(s)
+        return string.lower(tostring(s or ""))
+    end
+    local function isFruitMatch(tile, fruitName)
+        local needle = normalize(fruitName)
+        if needle == "" then
+            return false
+        end
+        for _, node in ipairs(tile:GetDescendants()) do
+            local nodeName = normalize(node.Name)
+            if nodeName:find(needle, 1, true) or needle:find(nodeName, 1, true) then
+                return true
+            end
+        end
+        return false
+    end
     for _, tile in ipairs(tilesFolder:GetChildren()) do
         local pos = Utils.getPosition(tile)
         local dist = (pos and hrpPos) and (pos - hrpPos).Magnitude or 9999
@@ -56,13 +72,13 @@ function Utils.getProcessedTiles(plot, priorityList, hrpPos)
         for _, child in ipairs(tile:GetChildren()) do
             if child.Name ~= "Soil" and child.Name ~= "Base" and child.Name ~= "Hitbox" then
                 isEmpty = false
-                if hasPrio then
-                    for fruitName, enabled in pairs(priorityList) do
-                        if enabled and (child.Name:find(fruitName) or fruitName:find(child.Name)) then
-                            isPriority = true
-                            break
-                        end
-                    end
+            end
+        end
+        if hasPrio and not isEmpty and not isPriority then
+            for fruitName, enabled in pairs(priorityList) do
+                if enabled and isFruitMatch(tile, fruitName) then
+                    isPriority = true
+                    break
                 end
             end
         end

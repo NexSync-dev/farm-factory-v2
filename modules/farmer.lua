@@ -75,7 +75,7 @@ local function tick()
     for _, entry in ipairs(tiles) do
         if harvested >= maxPerCycle or not getConfig("enabled") then break end
         moveToTile(hrp, entry, tpMode)
-        Network.fire(ClickEvent, entry.tile)
+        Network.fireBypass(ClickEvent, entry.tile)
         harvested = harvested + 1
         batchCount = batchCount + 1
         if tpMode ~= "True Bypass" then
@@ -117,6 +117,6 @@ function Farmer.init(state)
     if Comms then
         ClickEvent = Comms:FindFirstChild("ClickPlant")
     end
-    Scheduler.register("Farmer", tick, 0.1)
+    Scheduler.register("Farmer", tick, 0.02)
 end
 return Farmer

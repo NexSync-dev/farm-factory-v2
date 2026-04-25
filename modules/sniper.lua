@@ -6,7 +6,7 @@ local Scheduler = nil
 local Cfg = nil
 local RollEvent = nil
 local BuyEvent = nil
-local _stats = { totalRolls = 0, matches = 0, bought = 0 }
+local _stats = { totalRolls = 0, matches = 0, bought = 0, attempts = 0, skipped = 0 }
 local _lastMatchInfo = nil
 local defaults = {
     enabled = false,
@@ -21,11 +21,7 @@ local defaults = {
 local function getConfig(key)
     return Cfg[key] ~= nil and Cfg[key] or defaults[key]
 end
-local function processResult(result)
-    if not result or type(result) ~= "table" then
-        return false
-    end
-    local item = result[1] or result.Item or result
+local function processItem(item)
     if type(item) ~= "table" then
         return false
     end
@@ -77,19 +73,41 @@ local function processResult(result)
     end
     return false
 end
+
+local function processResult(result)
+    if not result or type(result) ~= "table" then
+        return false
+    end
+
+    if result[1] ~= nil then
+        for _, entry in ipairs(result) do
+            if processItem(entry) then
+                return true
+            end
+        end
+        return false
+    end
+
+    if type(result.Item) == "table" then
+        return processItem(result.Item)
+    end
+
+    return processItem(result)
+end
 local function tick()
     if not getConfig("enabled") then return end
     if not RollEvent then return end
     local isInstant = getConfig("instantMode")
-    local ok, result
-    if isInstant then
-        ok, result = Network.invokeBypass(RollEvent, 2)
-    else
-        ok, result = Network.invoke(RollEvent, 2)
-    end
-    if ok and result then
+    _stats.attempts = _stats.attempts + 1
+    local ok, result = Network.invokeBypass(RollEvent, 2)
+    if ok then
         _stats.totalRolls = _stats.totalRolls + 1
-        processResult(result)
+        local matched = processResult(result)
+        if not matched then
+            _stats.skipped = _stats.skipped + 1
+        end
+    else
+        _stats.skipped = _stats.skipped + 1
     end
 end
 function Sniper.getStats()
@@ -99,7 +117,7 @@ function Sniper.getLastMatch()
     return _lastMatchInfo
 end
 function Sniper.resetStats()
-    _stats = { totalRolls = 0, matches = 0, bought = 0 }
+    _stats = { totalRolls = 0, matches = 0, bought = 0, attempts = 0, skipped = 0 }
     _lastMatchInfo = nil
 end
 function Sniper.setEnabled(v)
