@@ -173,7 +173,8 @@ local function tick()
     _stats.totalHarvested = _stats.totalHarvested + harvested
 
     if Utils then
-        Utils.log("DEBUG", ("Farmer cycle #%d: harvested %d tiles (%d clusters)"):format(
+        Utils.log("DEBUG", string.format(
+            "Farmer cycle #%d: harvested %d tiles (%d clusters)",
             _stats.cycleCount, harvested, #clusters
         ))
     end

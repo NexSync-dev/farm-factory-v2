@@ -151,7 +151,8 @@ function Network.invoke(remote, maxRetries, ...)
         else
             stats.totalErrors = stats.totalErrors + 1
             if Utils then
-                Utils.log("WARN", ("InvokeServer attempt %d/%d failed [%s]: %s"):format(
+                Utils.log("WARN", string.format(
+                    "InvokeServer attempt %d/%d failed [%s]: %s",
                     attempt, maxRetries, name, tostring(result)
                 ))
             end

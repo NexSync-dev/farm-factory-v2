@@ -66,7 +66,7 @@ local function processResult(result)
             time     = os.clock(),
         }
 
-        Utils.log("INFO", ("🎯 SNIPER MATCH: %s (earnings: %d)"):format(itemType, itemEarnings))
+        Utils.log("INFO", string.format("🎯 SNIPER MATCH: %s (earnings: %d)", itemType, itemEarnings))
 
         if getConfig("autoBuyMatch") then
             local idx = item.StumpIndex or item.Index or 0

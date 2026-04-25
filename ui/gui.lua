@@ -369,7 +369,8 @@ function GUI.build(state)
 
             pcall(function()
                 statsLabel:SetText(
-                    ("🌾 Harvested: %d | 🔄 Cycles: %d\n📡 Ping: %dms | 🌐 Fired: %d | ❌ Errors: %d"):format(
+                    string.format(
+                        "🌾 Harvested: %d | 🔄 Cycles: %d\n📡 Ping: %dms | 🌐 Fired: %d | ❌ Errors: %d",
                         farmerStats.totalHarvested,
                         farmerStats.cycleCount,
                         ping,
@@ -379,7 +380,8 @@ function GUI.build(state)
                 )
 
                 sniperStatsLabel:SetText(
-                    ("🎲 Rolls: %d | 🎯 Matches: %d | 🛒 Bought: %d"):format(
+                    string.format(
+                        "🎲 Rolls: %d | 🎯 Matches: %d | 🛒 Bought: %d",
                         sniperStats.totalRolls,
                         sniperStats.matches,
                         sniperStats.bought

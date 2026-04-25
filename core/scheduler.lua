@@ -103,7 +103,8 @@ function Scheduler.start()
                         if not ok then
                             mod.errorCount = mod.errorCount + 1
                             if Utils then
-                                Utils.log("ERROR", ("Module '%s' error (%d/%d): %s"):format(
+                                Utils.log("ERROR", string.format(
+                                    "Module '%s' error (%d/%d): %s",
                                     name, mod.errorCount, mod.maxErrors, tostring(err)
                                 ))
                             end

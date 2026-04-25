@@ -21,7 +21,7 @@ end
 
 function Utils.log(level, msg)
     if not Utils._debugEnabled and level == "DEBUG" then return end
-    local prefix = ("[FarmV2][%s]"):format(level)
+    local prefix = string.format("[FarmV2][%s]", level)
     if level == "ERROR" then
         warn(prefix .. " " .. tostring(msg))
     else
