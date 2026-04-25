@@ -26,12 +26,21 @@ local function processResult(result)
         return false
     end
     local item = result[1]
+    Utils.log("DEBUG", "Result Item: " .. Utils.dump(item))
     local itemType = item.Type or item.Title or ""
     local itemEarnings = tonumber(item.Earnings) or 0
     local targetFruits = getConfig("targetFruits")
     local minEarnings = getConfig("minEarnings")
-    local isMatch = (next(targetFruits) == nil or targetFruits[itemType])
-                    and (itemEarnings >= minEarnings)
+    local isMatch = false
+    local hasTargetSelection = false
+    if targetFruits then
+        for _, v in pairs(targetFruits) do if v then hasTargetSelection = true break end end
+    end
+    if not hasTargetSelection or targetFruits[itemType] then
+        if itemEarnings >= minEarnings then
+            isMatch = true
+        end
+    end
     if isMatch then
         _stats.matches = _stats.matches + 1
         _lastMatchInfo = { type = itemType, earnings = itemEarnings, time = os.clock() }
@@ -42,7 +51,6 @@ local function processResult(result)
             local idx = item.StumpIndex or item.Index or 0
             if idx == 0 and Utils.getClosestTileIndex then
                 idx = Utils.getClosestTileIndex()
-                Utils.log("DEBUG", "fallback index used: " .. tostring(idx))
             end
             if BuyEvent then
                 local buyOk = Network.fireBypass(BuyEvent, idx)
@@ -95,17 +103,11 @@ function Sniper.setEnabled(v)
     Cfg.enabled = v
     if v then
         local interval = getConfig("instantMode") and 0 or getConfig("rollSpeed")
-        Scheduler.register("Sniper", tick, interval)
+        Scheduler.setInterval("Sniper", interval)
     end
 end
 function Sniper.isEnabled()
     return getConfig("enabled")
-end
-function Sniper.start()
-    Sniper.setEnabled(true)
-end
-function Sniper.stop()
-    Sniper.setEnabled(false)
 end
 function Sniper.init(state)
     Utils = state.Utils

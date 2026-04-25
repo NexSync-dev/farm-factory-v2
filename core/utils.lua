@@ -15,19 +15,29 @@ function Utils.log(level, msg)
         print(prefix, tostring(msg))
     end
 end
+function Utils.dump(tbl, indent)
+    if not tbl then return "nil" end
+    indent = indent or 0
+    local s = "{\n"
+    for k, v in pairs(tbl) do
+        s = s .. string.rep("  ", indent + 1) .. tostring(k) .. " = "
+        if type(v) == "table" then
+            s = s .. Utils.dump(v, indent + 1) .. ",\n"
+        else
+            s = s .. tostring(v) .. ",\n"
+        end
+    end
+    return s .. string.rep("  ", indent) .. "}"
+end
 function Utils.getPlot()
     local plots = workspace:FindFirstChild("Plots")
     if not plots then return nil end
-    return plots:FindFirstChild(LP.Name)
-        or plots:FindFirstChild(LP.DisplayName)
+    return plots:FindFirstChild(LP.Name) or plots:FindFirstChild(LP.DisplayName)
 end
 function Utils.getPosition(obj)
     if not obj or not obj.Parent then return nil end
     if obj:IsA("Model") then
-        local primary = obj.PrimaryPart
-        if primary then return primary.Position end
-        local pivot = obj:GetPivot()
-        return pivot and pivot.Position
+        return obj:GetPivot().Position
     elseif obj:IsA("BasePart") then
         return obj.Position
     end
@@ -37,20 +47,18 @@ function Utils.getProcessedTiles(plot, priorityList, hrpPos)
     local tilesFolder = plot and plot:FindFirstChild("Tiles")
     if not tilesFolder then return {} end
     local result = {}
-    local hasPrio = priorityList and next(priorityList)
-    
+    local hasPrio = (priorityList and next(priorityList) ~= nil)
     for _, tile in ipairs(tilesFolder:GetChildren()) do
         local pos = Utils.getPosition(tile)
         local dist = (pos and hrpPos) and (pos - hrpPos).Magnitude or 9999
         local isPriority = false
         local isEmpty = true
-        
         for _, child in ipairs(tile:GetChildren()) do
             if child.Name ~= "Soil" and child.Name ~= "Base" and child.Name ~= "Hitbox" then
                 isEmpty = false
                 if hasPrio then
                     for fruitName, enabled in pairs(priorityList) do
-                        if enabled and (child.Name == fruitName or string.find(child.Name, fruitName)) then
+                        if enabled and (child.Name:find(fruitName) or fruitName:find(child.Name)) then
                             isPriority = true
                             break
                         end
@@ -58,16 +66,14 @@ function Utils.getProcessedTiles(plot, priorityList, hrpPos)
                 end
             end
         end
-        
         table.insert(result, {
             tile = tile,
             position = pos,
             distance = dist,
             priority = isPriority,
-            empty = isEmpty
+            empty = isEmpty,
         })
     end
-    
     table.sort(result, function(a, b)
         if a.priority ~= b.priority then return a.priority end
         if a.empty ~= b.empty then return a.empty end
@@ -83,14 +89,15 @@ function Utils.getClosestTileIndex()
     if not tilesFolder then return 0 end
     local closestDist = 9999
     local closestIdx = 0
-    for _, tile in ipairs(tilesFolder:GetChildren()) do
+    local children = tilesFolder:GetChildren()
+    for i, tile in ipairs(children) do
         local pos = Utils.getPosition(tile)
         if pos then
             local dist = (pos - hrp.Position).Magnitude
             if dist < closestDist then
                 closestDist = dist
                 local num = string.match(tile.Name, "%d+")
-                if num then closestIdx = tonumber(num) end
+                closestIdx = num and tonumber(num) or i
             end
         end
     end
