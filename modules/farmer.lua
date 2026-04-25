@@ -9,7 +9,7 @@ local BuyEvent = nil
 local _stats = { totalRolls = 0, matches = 0, bought = 0, attempts = 0, skipped = 0 }
 local _lastMatchInfo = nil
 local _buyLock = false
-local _resumeTime = 0
+local _loopActive = false
 local defaults = {
     enabled = false,
     targetFruits = {},
@@ -134,32 +134,53 @@ local function processResult(result)
 
     return processItem(result)
 end
-local function tick()
-    if not getConfig("enabled") then return end
-    if _buyLock then return end
-    if os.clock() < _resumeTime then return end
-    if not RollEvent then return end
-    local burst = math.max(1, math.floor(getConfig("rollBurst") or 1))
-    for i = 1, burst do
-        if not getConfig("enabled") or _buyLock or os.clock() < _resumeTime then
-            break
-        end
-        _stats.attempts = _stats.attempts + 1
-        local ok, result = Network.invokeBypass(RollEvent)
-        if ok then
-            _stats.totalRolls = _stats.totalRolls + 1
-            local matched = processResult(result)
-            if not matched then
-                _stats.skipped = _stats.skipped + 1
+local function startLoop()
+    if _loopActive then return end
+    _loopActive = true
+    
+    task.spawn(function()
+        while _loopActive do
+            if not getConfig("enabled") then
+                task.wait(0.2)
+                continue
             end
-        else
-            _stats.skipped = _stats.skipped + 1
+            
+            if _buyLock then
+                task.wait(0.1)
+                continue
+            end
+            
+            local isInstant = getConfig("instantMode")
+            local rollSpeed = getConfig("rollSpeed") or 0.05
+            local burst = math.max(1, math.floor(getConfig("rollBurst") or 1))
+            
+            for i = 1, burst do
+                if not getConfig("enabled") or _buyLock then break end
+                
+                _stats.attempts = _stats.attempts + 1
+                local ok, result = Network.invokeBypass(RollEvent)
+                if ok then
+                    _stats.totalRolls = _stats.totalRolls + 1
+                    if processResult(result) then break end
+                else
+                    _stats.skipped = _stats.skipped + 1
+                end
+                
+                -- In instant mode, we don't wait between burst rolls at all
+                if i < burst and not isInstant then
+                    task.wait(0.01)
+                end
+            end
+            
+            if isInstant then
+                RunService.Heartbeat:Wait()
+            else
+                task.wait(rollSpeed)
+            end
         end
-        if i < burst then
-            RunService.Heartbeat:Wait()
-        end
-    end
+    end)
 end
+
 function Sniper.getStats()
     return _stats
 end
@@ -174,10 +195,6 @@ function Sniper.setEnabled(v)
     Cfg.enabled = v
     if not v then
         _buyLock = false
-    end
-    if v then
-        local interval = getConfig("instantMode") and 0 or getConfig("rollSpeed")
-        Scheduler.setInterval("Sniper", interval)
     end
 end
 function Sniper.start()
@@ -203,7 +220,7 @@ function Sniper.init(state)
         RollEvent = Comms:WaitForChild("DoRoll", 5)
         BuyEvent = Comms:WaitForChild("BuySeeds", 5)
     end
-    local interval = getConfig("instantMode") and 0 or getConfig("rollSpeed")
-    Scheduler.register("Sniper", tick, interval)
+    
+    startLoop()
 end
 return Sniper
