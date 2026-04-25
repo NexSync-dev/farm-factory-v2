@@ -66,9 +66,11 @@ function GUI.build(state)
     SniperBox:AddInput("MinEarnings", { Text = "Min Earnings", Default = tostring(Config.Sniper.minEarnings or 0), Numeric = true, Callback = function(v) Config.Sniper.minEarnings = tonumber(v) or 0 end })
     SniperBox:AddToggle("InstantMode", { Text = "Instant Mode", Default = Config.Sniper.instantMode or false, Callback = function(v) Config.Sniper.instantMode = v; Scheduler.setInterval("Sniper", v and 0 or Config.Sniper.rollSpeed) end })
     SniperBox:AddSlider("RollSpeed", { Text = "Normal Roll Speed (s)", Default = Config.Sniper.rollSpeed or 0.05, Min = 0.02, Max = 0.3, Rounding = 3, Callback = function(v) Config.Sniper.rollSpeed = v; if not Config.Sniper.instantMode then Scheduler.setInterval("Sniper", v) end end })
+    SniperBox:AddSlider("RollBurst", { Text = "Rolls per Tick", Default = Config.Sniper.rollBurst or 1, Min = 1, Max = 5, Rounding = 0, Callback = function(v) Config.Sniper.rollBurst = v end })
     local SniperCtrl = Tabs.Sniper:AddRightGroupbox("Controls")
     SniperCtrl:AddToggle("AutoBuyMatch", { Text = "Auto Buy on Match", Default = Config.Sniper.autoBuyMatch or false, Callback = function(v) Config.Sniper.autoBuyMatch = v end })
     SniperCtrl:AddToggle("StopOnMatch", { Text = "Stop on Match", Default = Config.Sniper.stopOnMatch or true, Callback = function(v) Config.Sniper.stopOnMatch = v end })
+    SniperCtrl:AddToggle("AutoProceedAfterBuy", { Text = "Continue Rolling After Buy", Default = Config.Sniper.autoProceedAfterBuy ~= false, Callback = function(v) Config.Sniper.autoProceedAfterBuy = v end })
     SniperCtrl:AddSlider("AutoProceedDelay", { Text = "Proceed Delay (s)", Default = Config.Sniper.autoProceedDelay or 1.2, Min = 0.1, Max = 5, Rounding = 1, Callback = function(v) Config.Sniper.autoProceedDelay = v end })
     SniperCtrl:AddButton({ Text = "▶ Start Sniper", Func = function() if Sniper and Sniper.start then Sniper.start() end end })
     SniperCtrl:AddButton({ Text = "⏹ Stop Sniper", Func = function() if Sniper and Sniper.stop then Sniper.stop() end end })
@@ -101,7 +103,7 @@ function GUI.build(state)
     ThemeManager:SetLibrary(Library)
     ThemeManager:ApplyToTab(Tabs["UI Settings"])
     task.spawn(function()
-        while Library and Scheduler.isAlive() do
+        while Library do
             local farmerStats = (Farmer and Farmer.getStats and Farmer.getStats()) or { totalHarvested = 0, cycleCount = 0 }
             local netStats = (Network and Network.getStats and Network.getStats()) or { totalFired = 0, totalInvoked = 0, totalErrors = 0 }
             local ping = Utils.getPing()

@@ -64,14 +64,23 @@ function Utils.getProcessedTiles(plot, priorityList, hrpPos)
         end
         return false
     end
+    local function isPlantNode(node)
+        local n = string.lower(tostring(node.Name or ""))
+        if n == "soil" or n == "base" or n == "hitbox" then
+            return false
+        end
+        return node:IsA("Model") or node:IsA("BasePart") or node:IsA("MeshPart")
+    end
+
     for _, tile in ipairs(tilesFolder:GetChildren()) do
         local pos = Utils.getPosition(tile)
         local dist = (pos and hrpPos) and (pos - hrpPos).Magnitude or 9999
         local isPriority = false
         local isEmpty = true
-        for _, child in ipairs(tile:GetChildren()) do
-            if child.Name ~= "Soil" and child.Name ~= "Base" and child.Name ~= "Hitbox" then
+        for _, child in ipairs(tile:GetDescendants()) do
+            if isPlantNode(child) then
                 isEmpty = false
+                break
             end
         end
         if hasPrio and not isEmpty and not isPriority then
