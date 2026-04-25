@@ -3,7 +3,7 @@ local REPO_BASES = {
     "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/master/",
 }
 
-local function fetch(path)
+local function fetch(path, expectReturn)
     local errors = {}
     for _, base in ipairs(REPO_BASES) do
         local url = base .. path .. "?t=" .. tick()
@@ -22,7 +22,7 @@ local function fetch(path)
             end
 
             local value = chunk()
-            if value == nil then
+            if expectReturn and value == nil then
                 error("module returned nil")
             end
             return value
@@ -37,53 +37,22 @@ local function fetch(path)
     error("FarmV2 > [fatal] failed loading " .. path .. ":\n- " .. table.concat(errors, "\n- "))
 end
 
-local function fetchOptional(path)
-    local ok, result = pcall(fetch, path)
+local function fetchOptional(path, expectReturn)
+    local ok, result = pcall(fetch, path, expectReturn)
     if ok then
         return result
     end
     warn("FarmV2 > [warn] optional module load failed for " .. path .. ": " .. tostring(result))
     return nil
 end
-local LoaderUI = fetch("ui/loader.lua")
+
+local LoaderUI = fetchOptional("ui/loader.lua", true)
 local ui = nil
 if LoaderUI then ui = LoaderUI.show() end
 local function step(perc, text) if ui then ui.update(perc, text) end end
-step(0.1, "loading core...")
-local Utils = fetch("core/utils.lua")
-local Network = fetch("core/network.lua")
-local Scheduler = fetch("core/scheduler.lua")
-step(0.3, "starting engine...")
-local State = { Utils = Utils, Network = Network, Scheduler = Scheduler, Config = { Farmer = {}, Sniper = {}, AutoSell = {}, Upgrades = {}, AntiAFK = {} }, _connections = {} }
-Network.init(State)
-Scheduler.init(State)
-step(0.5, "loading modules...")
-local requiredModules = { "modules/farmer.lua", "modules/sniper.lua", "modules/antiafk.lua" }
-local optionalModules = { "modules/autosell.lua", "modules/upgrades.lua" }
-local loaded = {}
-for i, path in ipairs(requiredModules) do
-    step(0.5 + (i / (#requiredModules + #optionalModules)) * 0.3, "loading " .. path)
-    local mod = fetch(path)
-    loaded[path] = mod
-    pcall(function() mod.init(State) end)
-end
-for j, path in ipairs(optionalModules) do
-    local i = #requiredModules + j
-    step(0.5 + (i / (#requiredModules + #optionalModules)) * 0.3, "loading " .. path)
-    local mod = fetchOptional(path)
-    if mod then
-        loaded[path] = mod
-        pcall(function() mod.init(State) end)
-    end
-end
-State.Farmer = loaded["modules/farmer.lua"]
-State.Sniper = loaded["modules/sniper.lua"]
-State.AutoSell = loaded["modules/autosell.lua"]
-State.Upgrades = loaded["modules/upgrades.lua"]
-State.AntiAFK = loaded["modules/antiafk.lua"]
-step(0.9, "building gui...")
-local GUI = fetch("ui/gui.lua")
-pcall(function() GUI.build(State) end)
+
+step(0.5, "loading main script...")
+fetch("main.lua", false)
+
 step(1.0, "done")
 if ui then ui.finish() end
-Scheduler.start()
