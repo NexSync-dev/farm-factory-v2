@@ -9,7 +9,7 @@ local ClickEvent = nil
 local _stats = { cycleCount = 0, tilesThisCycle = 0, totalHarvested = 0 }
 local defaults = {
     enabled = false,
-    batchSize = 5,
+    batchSize = 10,
     clusterRadius = 20,
     maxPerCycle = 9999,
     collectDelay = 0,
@@ -22,7 +22,9 @@ local function getConfig(key)
     return Cfg[key] ~= nil and Cfg[key] or defaults[key]
 end
 local function teleportTo(hrp, pos)
-    if getConfig("tpMode") == "safe" then
+    local mode = getConfig("tpMode")
+    if mode == "none" then return end
+    if mode == "safe" then
         Utils.safeTP(hrp, pos, getConfig("safeTpStep"))
     else
         Utils.instantTP(hrp, pos, 3.5)
@@ -72,7 +74,8 @@ local function tick()
         tiles = Utils.getAllTiles(plot, hrpPos)
     end
     if #tiles == 0 then return end
-    local clusters = clusterTiles(tiles, getConfig("clusterRadius"))
+    local tpMode = getConfig("tpMode")
+    local clusters = clusterTiles(tiles, tpMode == "none" and 9999 or getConfig("clusterRadius"))
     local batchSize = getConfig("batchSize")
     local maxPerCycle = getConfig("maxPerCycle")
     local collectDelay = getConfig("collectDelay")
@@ -83,7 +86,7 @@ local function tick()
         if harvested >= maxPerCycle then break end
         if not getConfig("enabled") then break end
         local anchorPos = cluster[1].position
-        if anchorPos then
+        if anchorPos and tpMode ~= "none" then
             teleportTo(hrp, anchorPos)
         end
         local batchCount = 0
@@ -101,9 +104,9 @@ local function tick()
                 task.wait(collectDelay)
             end
         end
-        RunService.Heartbeat:Wait()
+        if tpMode ~= "none" then RunService.Heartbeat:Wait() end
     end
-    if hrp and hrp.Parent then
+    if tpMode ~= "none" and hrp and hrp.Parent then
         hrp.CFrame = oldCF
     end
     _stats.tilesThisCycle = harvested
@@ -135,6 +138,6 @@ function Farmer.init(state)
     if Comms then
         ClickEvent = Comms:FindFirstChild("ClickPlant")
     end
-    Scheduler.register("Farmer", tick, 0.2)
+    Scheduler.register("Farmer", tick, 0.1)
 end
 return Farmer

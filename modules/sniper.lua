@@ -38,9 +38,17 @@ local function processResult(result)
         Utils.log("INFO", string.format("🎯 SNIPER MATCH: %s (earnings: %d)", itemType, itemEarnings))
         if getConfig("autoBuyMatch") then
             local idx = item.StumpIndex or item.Index or 0
-            local buyOk = Network.fire(BuyEvent, idx)
-            if buyOk then
-                _stats.bought = _stats.bought + 1
+            if BuyEvent then
+                Utils.log("DEBUG", string.format("🛒 Attempting to buy item at index %s", tostring(idx)))
+                local buyOk = Network.fire(BuyEvent, idx)
+                if buyOk then
+                    _stats.bought = _stats.bought + 1
+                    Utils.log("INFO", string.format("💰 Bought %s successfully", itemType))
+                else
+                    Utils.log("ERROR", string.format("❌ Failed to buy %s", itemType))
+                end
+            else
+                Utils.log("ERROR", "❌ BuyEvent (BuySeeds) not found")
             end
             if getConfig("stopOnMatch") then
                 Cfg.enabled = false
@@ -96,8 +104,8 @@ function Sniper.init(state)
     state.Config.Sniper = Cfg
     local Comms = game:GetService("ReplicatedStorage"):WaitForChild("Communication", 10)
     if Comms then
-        RollEvent = Comms:FindFirstChild("DoRoll")
-        BuyEvent = Comms:FindFirstChild("BuySeeds")
+        RollEvent = Comms:WaitForChild("DoRoll", 5)
+        BuyEvent = Comms:WaitForChild("BuySeeds", 5)
     end
     local interval = getConfig("instantMode") and 0 or getConfig("rollSpeed")
     Scheduler.register("Sniper", tick, interval)
