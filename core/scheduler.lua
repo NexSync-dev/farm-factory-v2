@@ -16,6 +16,11 @@ end
 function Scheduler.unregister(name)
     modules[name] = nil
 end
+function Scheduler.setInterval(name, interval)
+    if modules[name] then
+        modules[name].interval = interval
+    end
+end
 function Scheduler.pause(name)
     if modules[name] then
         modules[name].paused = true

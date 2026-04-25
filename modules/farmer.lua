@@ -61,17 +61,17 @@ local function tick()
     local priorityList = getConfig("priorityFruits")
     local strictMode = getConfig("useStrictMode")
     local tiles
+    local allTiles = Utils.getProcessedTiles(plot, priorityList, hrpPos)
     if strictMode and next(priorityList) then
-        local all = Utils.getHarvestableTiles(plot, priorityList, hrpPos)
         local filtered = {}
-        for _, entry in ipairs(all) do
-            if entry.priority then
+        for _, entry in ipairs(allTiles) do
+            if entry.priority or entry.empty then
                 table.insert(filtered, entry)
             end
         end
         tiles = filtered
     else
-        tiles = Utils.getAllTiles(plot, hrpPos)
+        tiles = allTiles
     end
     if #tiles == 0 then return end
     local tpMode = getConfig("tpMode")

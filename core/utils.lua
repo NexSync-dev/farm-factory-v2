@@ -33,51 +33,39 @@ function Utils.getPosition(obj)
     end
     return nil
 end
-function Utils.getHarvestableTiles(plot, priorityList, hrpPos)
+function Utils.getProcessedTiles(plot, priorityList, hrpPos)
     local tilesFolder = plot and plot:FindFirstChild("Tiles")
     if not tilesFolder then return {} end
     local result = {}
+    local hasPrio = priorityList and next(priorityList)
+    
     for _, tile in ipairs(tilesFolder:GetChildren()) do
         local pos = Utils.getPosition(tile)
         local dist = (pos and hrpPos) and (pos - hrpPos).Magnitude or 9999
         local isPriority = false
-        if priorityList and next(priorityList) then
-            for _, child in ipairs(tile:GetChildren()) do
-                if priorityList[child.Name] then
+        local isEmpty = true
+        
+        for _, child in ipairs(tile:GetChildren()) do
+            if child:IsA("Model") then
+                isEmpty = false
+                if hasPrio and priorityList[child.Name] then
                     isPriority = true
-                    break
                 end
             end
         end
+        
         table.insert(result, {
             tile = tile,
             position = pos,
             distance = dist,
             priority = isPriority,
+            empty = isEmpty
         })
     end
+    
     table.sort(result, function(a, b)
-        if a.priority ~= b.priority then
-            return a.priority
-        end
-        return a.distance < b.distance
-    end)
-    return result
-end
-function Utils.getAllTiles(plot, hrpPos)
-    local tilesFolder = plot and plot:FindFirstChild("Tiles")
-    if not tilesFolder then return {} end
-    local result = {}
-    for _, tile in ipairs(tilesFolder:GetChildren()) do
-        local pos = Utils.getPosition(tile)
-        local dist = (pos and hrpPos) and (pos - hrpPos).Magnitude or 9999
-        table.insert(result, {
-            tile = tile,
-            position = pos,
-            distance = dist,
-        })
-    end
-    table.sort(result, function(a, b)
+        if a.priority ~= b.priority then return a.priority end
+        if a.empty ~= b.empty then return a.empty end
         return a.distance < b.distance
     end)
     return result

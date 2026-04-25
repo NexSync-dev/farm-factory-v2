@@ -6,73 +6,58 @@ function Loader.show()
     sg.Name = "FarmV2Loader"
     sg.Parent = CoreGui
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 300, 0, 100)
-    frame.Position = UDim2.new(0.5, -150, 0.5, -50)
-    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    frame.Size = UDim2.new(0, 200, 0, 200)
+    frame.Position = UDim2.new(0.5, -100, 0.5, -100)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    frame.BackgroundTransparency = 0.2
     frame.BorderSizePixel = 0
     frame.Parent = sg
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 16)
     corner.Parent = frame
+    local UIStroke = Instance.new("UIStroke")
+    UIStroke.Color = Color3.fromRGB(80, 200, 120)
+    UIStroke.Thickness = 2
+    UIStroke.Parent = frame
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, 0, 0, 40)
+    title.Position = UDim2.new(0, 0, 0, 10)
     title.BackgroundTransparency = 1
     title.Text = "FarmV2"
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 20
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 24
     title.Parent = frame
-    local status = Instance.new("TextLabel")
-    status.Size = UDim2.new(1, -40, 0, 20)
-    status.Position = UDim2.new(0, 40, 0.4, 0)
-    status.BackgroundTransparency = 1
-    status.Text = "initializing modules..."
-    status.TextColor3 = Color3.fromRGB(180, 180, 180)
-    status.Font = Enum.Font.Gotham
-    status.TextSize = 14
-    status.TextXAlignment = Enum.TextXAlignment.Left
-    status.Parent = frame
     local spinner = Instance.new("ImageLabel")
-    spinner.Size = UDim2.new(0, 20, 0, 20)
-    spinner.Position = UDim2.new(0, 15, 0.4, 0)
+    spinner.Size = UDim2.new(0, 60, 0, 60)
+    spinner.Position = UDim2.new(0.5, -30, 0.5, -30)
     spinner.BackgroundTransparency = 1
-    spinner.Image = "rbxassetid://3593380982" -- Generic circle
+    spinner.Image = "rbxassetid://3593380982"
     spinner.ImageColor3 = Color3.fromRGB(80, 200, 120)
     spinner.Parent = frame
-    local spinTweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1)
-    local spinTween = TweenService:Create(spinner, spinTweenInfo, {Rotation = 360})
+    local spinTween = TweenService:Create(spinner, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1), {Rotation = 360})
     spinTween:Play()
-    local barBg = Instance.new("Frame")
-    barBg.Size = UDim2.new(0.8, 0, 0, 6)
-    barBg.Position = UDim2.new(0.1, 0, 0.75, 0)
-    barBg.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-    barBg.BorderSizePixel = 0
-    barBg.Parent = frame
-    local barCorner = Instance.new("UICorner")
-    barCorner.CornerRadius = UDim.new(1, 0)
-    barCorner.Parent = barBg
-    local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(0, 0, 1, 0)
-    bar.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
-    bar.BorderSizePixel = 0
-    bar.Parent = barBg
-    local bCorner = Instance.new("UICorner")
-    bCorner.CornerRadius = UDim.new(1, 0)
-    bCorner.Parent = bar
-    local function update(perc, text)
-        status.Text = text or status.Text
-        TweenService:Create(bar, TweenInfo.new(0.3), {Size = UDim2.new(perc, 0, 1, 0)}):Play()
-    end
+    local status = Instance.new("TextLabel")
+    status.Size = UDim2.new(1, 0, 0, 20)
+    status.Position = UDim2.new(0, 0, 1, -40)
+    status.BackgroundTransparency = 1
+    status.Text = "initializing..."
+    status.TextColor3 = Color3.fromRGB(180, 180, 180)
+    status.Font = Enum.Font.SourceSans
+    status.TextSize = 16
+    status.Parent = frame
     return {
-        update = update,
+        update = function(perc, text)
+            status.Text = text or status.Text
+        end,
         finish = function()
-            update(1, "ready")
+            status.Text = "ready"
             task.wait(0.5)
             TweenService:Create(frame, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+            TweenService:Create(UIStroke, TweenInfo.new(0.5), {Transparency = 1}):Play()
             TweenService:Create(title, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
             TweenService:Create(status, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
-            TweenService:Create(barBg, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
-            TweenService:Create(bar, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+            TweenService:Create(spinner, TweenInfo.new(0.5), {ImageTransparency = 1}):Play()
             task.wait(0.5)
             sg:Destroy()
         end
