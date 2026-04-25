@@ -36,6 +36,15 @@ local function fetch(path)
 
     error("FarmV2 > [fatal] failed loading " .. path .. ":\n- " .. table.concat(errors, "\n- "))
 end
+
+local function fetchOptional(path)
+    local ok, result = pcall(fetch, path)
+    if ok then
+        return result
+    end
+    warn("FarmV2 > [warn] optional module load failed for " .. path .. ": " .. tostring(result))
+    return nil
+end
 local LoaderUI = fetch("ui/loader.lua")
 local ui = nil
 if LoaderUI then ui = LoaderUI.show() end
@@ -49,13 +58,23 @@ local State = { Utils = Utils, Network = Network, Scheduler = Scheduler, Config 
 Network.init(State)
 Scheduler.init(State)
 step(0.5, "loading modules...")
-local modules = { "modules/farmer.lua", "modules/sniper.lua", "modules/autosell.lua", "modules/upgrades.lua", "modules/antiafk.lua" }
+local requiredModules = { "modules/farmer.lua", "modules/sniper.lua", "modules/antiafk.lua" }
+local optionalModules = { "modules/autosell.lua", "modules/upgrades.lua" }
 local loaded = {}
-for i, path in ipairs(modules) do
-    step(0.5 + (i/#modules)*0.3, "loading " .. path)
+for i, path in ipairs(requiredModules) do
+    step(0.5 + (i / (#requiredModules + #optionalModules)) * 0.3, "loading " .. path)
     local mod = fetch(path)
     loaded[path] = mod
     pcall(function() mod.init(State) end)
+end
+for j, path in ipairs(optionalModules) do
+    local i = #requiredModules + j
+    step(0.5 + (i / (#requiredModules + #optionalModules)) * 0.3, "loading " .. path)
+    local mod = fetchOptional(path)
+    if mod then
+        loaded[path] = mod
+        pcall(function() mod.init(State) end)
+    end
 end
 State.Farmer = loaded["modules/farmer.lua"]
 State.Sniper = loaded["modules/sniper.lua"]
