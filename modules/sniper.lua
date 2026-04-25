@@ -9,6 +9,7 @@ local BuyEvent = nil
 local _stats = { totalRolls = 0, matches = 0, bought = 0, attempts = 0, skipped = 0 }
 local _lastMatchInfo = nil
 local _buyLock = false
+local _resumeTime = 0
 local defaults = {
     enabled = false,
     targetFruits = {},
@@ -49,47 +50,40 @@ local function processItem(item)
         Utils.log("INFO", string.format("match: %s (%d)", itemType, itemEarnings))
         if getConfig("autoBuyMatch") then
             _buyLock = true
-            Scheduler.pause("Farmer")
-            task.wait(0.2)
-            local idx = item.StumpIndex or item.Index or 0
-            if idx == 0 and Utils.getClosestTileIndex then
-                idx = Utils.getClosestTileIndex()
-            end
-            if BuyEvent then
-                local buyArgs = {}
-                if type(idx) == "number" and idx > 0 then
-                    table.insert(buyArgs, idx)
-                end
-                table.insert(buyArgs, itemType)
-                if item.Title and item.Title ~= itemType then
-                    table.insert(buyArgs, item.Title)
-                end
+            task.spawn(function()
+                Scheduler.pause("Farmer")
+                task.wait(0.2)
+                if BuyEvent then
+                    local buyArgs = {}
+                    table.insert(buyArgs, itemType)
+                    if item.Title and item.Title ~= itemType then
+                        table.insert(buyArgs, item.Title)
+                    end
 
-                local bought = false
-                for _, arg in ipairs(buyArgs) do
-                    if Network.fireBypass(BuyEvent, arg) then
-                        bought = true
-                        Utils.log("INFO", string.format("buy attempt %s with arg %s", itemType, tostring(arg)))
-                        break
+                    local bought = false
+                    for _, arg in ipairs(buyArgs) do
+                        if Network.fireBypass(BuyEvent, arg) then
+                            bought = true
+                            Utils.log("INFO", string.format("buy attempt %s with arg %s", itemType, tostring(arg)))
+                            break
+                        end
+                    end
+
+                    if bought then
+                        _stats.bought = _stats.bought + 1
+                    else
+                        Utils.log("ERROR", "buy failed for " .. itemType .. " (no valid args)")
                     end
                 end
-
-                if bought then
-                    _stats.bought = _stats.bought + 1
-                else
-                    Utils.log("ERROR", "buy failed for " .. itemType .. " (no valid args)")
-                end
-            end
-            if getConfig("stopOnMatch") then
-                Cfg.enabled = false
+                Scheduler.resume("Farmer")
                 _buyLock = false
-            else
+                
                 if getConfig("autoProceedAfterBuy") then
-                    task.wait(getConfig("autoProceedDelay"))
+                    _resumeTime = os.clock() + getConfig("autoProceedDelay")
+                elseif getConfig("stopOnMatch") then
+                    Cfg.enabled = false
                 end
-                _buyLock = false
-            end
-            Scheduler.resume("Farmer")
+            end)
         elseif getConfig("stopOnMatch") then
             Cfg.enabled = false
         end
@@ -104,12 +98,13 @@ local function processResult(result)
     end
 
     if result[1] ~= nil then
+        local matched = false
         for _, entry in ipairs(result) do
             if processItem(entry) then
-                return true
+                matched = true
             end
         end
-        return false
+        return matched
     end
 
     if type(result.Item) == "table" then
@@ -121,10 +116,11 @@ end
 local function tick()
     if not getConfig("enabled") then return end
     if _buyLock then return end
+    if os.clock() < _resumeTime then return end
     if not RollEvent then return end
     local burst = math.max(1, math.floor(getConfig("rollBurst") or 1))
     for i = 1, burst do
-        if not getConfig("enabled") or _buyLock then
+        if not getConfig("enabled") or _buyLock or os.clock() < _resumeTime then
             break
         end
         _stats.attempts = _stats.attempts + 1

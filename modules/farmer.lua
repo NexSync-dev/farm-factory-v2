@@ -50,10 +50,12 @@ local function tick()
     if priorityList then
         for _, v in pairs(priorityList) do if v then hasPrioritySelection = true break end end
     end
-    if strictMode and hasPrioritySelection then
-        for _, entry in ipairs(allTiles) do
-            if entry.priority and not entry.empty then
-                table.insert(tiles, entry)
+    if strictMode then
+        if hasPrioritySelection then
+            for _, entry in ipairs(allTiles) do
+                if entry.priority and not entry.empty then
+                    table.insert(tiles, entry)
+                end
             end
         end
     else
@@ -76,6 +78,7 @@ local function tick()
         if harvested >= maxPerCycle or not getConfig("enabled") then break end
         moveToTile(hrp, entry, tpMode)
         Network.fireBypass(ClickEvent, entry.tile)
+        Utils.log("DEBUG", "Harvesting tile: " .. tostring(entry.tile and entry.tile.Name or "unknown"))
         harvested = harvested + 1
         batchCount = batchCount + 1
         if tpMode ~= "True Bypass" then
