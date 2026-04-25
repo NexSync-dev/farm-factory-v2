@@ -75,39 +75,39 @@ local function processItem(item)
         
         if getConfig("autoBuyMatch") then
             _buyLock = true
-            task.spawn(function()
-                Scheduler.pause("Farmer")
-                task.wait(0.2)
-                
-                -- Prioritize finding the index visually to avoid server-side 0-index bugs
-                local stumpIdx = findStumpIndex(itemType) or item.StumpIndex or item.Index
-                if stumpIdx and BuyEvent then
-                    Utils.log("INFO", string.format("Attempting Buy: %s on Stump %s", itemType, tostring(stumpIdx)))
-                    if Network.fireBypass(BuyEvent, stumpIdx) then
-                        _stats.bought = _stats.bought + 1
-                        Utils.log("INFO", "Successfully purchased " .. itemType)
-                    end
-                else
-                    Utils.log("ERROR", "Failed to resolve stump index for " .. itemType)
+            Scheduler.pause("Farmer")
+            task.wait(0.2)
+            
+            -- Prioritize finding the index visually to avoid server-side 0-index bugs
+            local stumpIdx = findStumpIndex(itemType) or item.StumpIndex or item.Index
+            if stumpIdx and BuyEvent then
+                Utils.log("INFO", string.format("Attempting Buy: %s on Stump %s", itemType, tostring(stumpIdx)))
+                if Network.fireBypass(BuyEvent, stumpIdx) then
+                    _stats.bought = _stats.bought + 1
+                    Utils.log("INFO", "Successfully purchased " .. itemType)
                 end
-                
-                local proceed = getConfig("autoProceedAfterBuy")
-                local stop = getConfig("stopOnMatch")
-                
-                if proceed then
-                    local delay = getConfig("autoProceedDelay") or 1.2
-                    task.wait(delay)
-                    Scheduler.resume("Farmer")
-                    _buyLock = false
-                elseif stop then
-                    Sniper.setEnabled(false)
-                    Scheduler.resume("Farmer")
-                    _buyLock = false
-                else
-                    Scheduler.resume("Farmer")
-                    _buyLock = false
-                end
-            end)
+            else
+                Utils.log("ERROR", "Failed to resolve stump index for " .. itemType)
+            end
+            
+            local proceed = getConfig("autoProceedAfterBuy")
+            local stop = getConfig("stopOnMatch")
+            
+            if proceed then
+                local delay = getConfig("autoProceedDelay") or 1.2
+                Utils.log("INFO", string.format("Waiting %ss to proceed...", tostring(delay)))
+                task.wait(delay)
+                Scheduler.resume("Farmer")
+                _buyLock = false
+            elseif stop then
+                Utils.log("INFO", "Stopping sniper (Stop on Match enabled)")
+                Sniper.setEnabled(false)
+                Scheduler.resume("Farmer")
+                _buyLock = false
+            else
+                Scheduler.resume("Farmer")
+                _buyLock = false
+            end
         elseif getConfig("stopOnMatch") then
             Sniper.setEnabled(false)
         end
