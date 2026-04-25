@@ -27,8 +27,6 @@ local function getConfig(key)
     return Cfg[key] ~= nil and Cfg[key] or defaults[key]
 end
 
--- FIX 1: Resolve the plot correctly via workspace.Plots[LocalPlayer.Name]
--- and extract the stump number from the name ("Stump" = 1, "Stump_2" = 2, etc.)
 local function findStumpIndex(itemName)
     local Plots = workspace:FindFirstChild("Plots")
     if not Plots then
@@ -39,7 +37,6 @@ local function findStumpIndex(itemName)
     local LocalPlayer = Players.LocalPlayer
     local plot = Plots:FindFirstChild(LocalPlayer.Name)
     if not plot then
-        -- Fallback to Utils.getPlot() if available
         if Utils.getPlot then
             plot = Utils.getPlot()
         end
@@ -51,7 +48,6 @@ local function findStumpIndex(itemName)
 
     local lowerItem = itemName:lower()
     for _, child in ipairs(plot:GetChildren()) do
-        -- Match "Stump" or "Stump_2", "Stump_3", etc.
         if child.Name == "Stump" or child.Name:match("^Stump_%d+$") then
             local titleObj = child:FindFirstChild("Model")
                 and child.Model:FindFirstChild("BuyableDisplay")
@@ -59,7 +55,6 @@ local function findStumpIndex(itemName)
             if titleObj then
                 local text = titleObj.Text:lower()
                 if text:find(lowerItem, 1, true) or lowerItem:find(text, 1, true) then
-                    -- "Stump" has no number → index 1; "Stump_2" → 2
                     local num = child.Name:match("%d+")
                     local idx = num and tonumber(num) or 1
                     Utils.log("DEBUG", string.format(
@@ -86,7 +81,21 @@ local function isMatch(item)
         for _, v in pairs(targetFruits) do if v then hasTargetSelection = true break end end
     end
 
-    if (not hasTargetSelection or targetFruits[itemType]) and (itemEarnings >= minEarnings) then
+    -- Case-insensitive so "Prickly Pear" / "prickly pear" both match
+    local lowerType = itemType:lower()
+    local matched = false
+    if hasTargetSelection then
+        for k, v in pairs(targetFruits) do
+            if v and k:lower() == lowerType then
+                matched = true
+                break
+            end
+        end
+    else
+        matched = true
+    end
+
+    if matched and itemEarnings >= minEarnings then
         return true, itemEarnings, itemType
     end
     return false, 0, ""
@@ -105,13 +114,8 @@ local function processItem(item)
         Scheduler.pause("Farmer")
         task.wait(0.2)
 
-        -- FIX 2: fire the remote directly with FireServer instead of Network.fireBypass.
-        -- The server expects BuyEvent:FireServer(stumpNumber) where stumpNumber is
-        -- 1 for "Stump", 2 for "Stump_2", 3 for "Stump_3", etc.
         local stumpIdx = findStumpIndex(itemType) or item.StumpIndex or item.Index
 
-        -- FIX 3: wrap the buy + proceed block in pcall so _buyLock is ALWAYS released
-        -- even if something inside errors, preventing the loop from freezing.
         local ok, err = pcall(function()
             if stumpIdx and BuyEvent then
                 Utils.log("INFO", string.format(
@@ -127,16 +131,13 @@ local function processItem(item)
             local stop    = getConfig("stopOnMatch")
 
             if proceed then
-                -- Wait, then let the loop continue normally
                 local delay = getConfig("autoProceedDelay") or 1.2
                 Utils.log("INFO", string.format("Waiting %.1fs before proceeding...", delay))
                 task.wait(delay)
-                -- Resume farmer BEFORE releasing buyLock so the loop doesn't race ahead
                 Scheduler.resume("Farmer")
                 _buyLock = false
             elseif stop then
                 Utils.log("INFO", "Stopping sniper (stopOnMatch enabled)")
-                -- Release lock first, then disable so the loop exits cleanly
                 Scheduler.resume("Farmer")
                 _buyLock = false
                 Sniper.setEnabled(false)
@@ -146,7 +147,6 @@ local function processItem(item)
             end
         end)
 
-        -- Safety net: if the pcall itself threw, make sure we never leave the lock set
         if not ok then
             Utils.log("ERROR", "processItem buy block errored: " .. tostring(err))
             Scheduler.resume("Farmer")
@@ -156,41 +156,48 @@ local function processItem(item)
         return true
     end
 
-    -- autoBuyMatch is off — just honour stopOnMatch
     if getConfig("stopOnMatch") then
         Sniper.setEnabled(false)
     end
     return true
 end
 
+-- Collects ALL matches from a roll result, sorts by earnings descending,
+-- and attempts to buy each one so nothing is missed (e.g. 2x Prickly Pear).
 local function processResult(result)
     if not result or type(result) ~= "table" then return false end
 
-    local bestMatch = nil
-    local maxEarnings = -1
+    local matches = {}
 
     local function evaluate(entry)
-        local matched, earnings = isMatch(entry)
-        if matched and earnings > maxEarnings then
-            maxEarnings = earnings
-            bestMatch = entry
+        local matched = isMatch(entry)
+        if matched then
+            table.insert(matches, entry)
         end
     end
 
     if result[1] ~= nil then
-        for _, entry in ipairs(result) do
-            evaluate(entry)
-        end
+        for _, entry in ipairs(result) do evaluate(entry) end
     elseif result.Item then
         evaluate(result.Item)
     else
         evaluate(result)
     end
 
-    if bestMatch then
-        return processItem(bestMatch)
+    if #matches == 0 then return false end
+
+    -- Buy highest-earnings match first
+    table.sort(matches, function(a, b)
+        return (tonumber(a.Earnings) or 0) > (tonumber(b.Earnings) or 0)
+    end)
+
+    Utils.log("INFO", string.format("processResult: %d match(es) found this roll", #matches))
+
+    for _, match in ipairs(matches) do
+        processItem(match)
     end
-    return false
+
+    return true
 end
 
 local function startLoop()
