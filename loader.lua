@@ -4,11 +4,18 @@ local REPO_BASES = {
 }
 
 local function fetch(path)
-    local lastErr = nil
+    local errors = {}
     for _, base in ipairs(REPO_BASES) do
         local url = base .. path .. "?t=" .. tick()
         local ok, result = pcall(function()
             local src = game:HttpGet(url)
+            if type(src) ~= "string" or src == "" then
+                error("empty response")
+            end
+            local lowered = string.lower(src)
+            if lowered:find("404: not found", 1, true) or lowered:find("<html", 1, true) then
+                error("http body is not lua (likely 404)")
+            end
             local chunk, compileErr = loadstring(src)
             if not chunk then
                 error("compile failed: " .. tostring(compileErr))
@@ -24,10 +31,10 @@ local function fetch(path)
         if ok then
             return result
         end
-        lastErr = string.format("%s -> %s", url, tostring(result))
+        table.insert(errors, string.format("%s -> %s", url, tostring(result)))
     end
 
-    error("FarmV2 > [fatal] failed loading " .. path .. ": " .. tostring(lastErr))
+    error("FarmV2 > [fatal] failed loading " .. path .. ":\n- " .. table.concat(errors, "\n- "))
 end
 local LoaderUI = fetch("ui/loader.lua")
 local ui = nil
