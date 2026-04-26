@@ -196,7 +196,7 @@ end)
 
 local QuickBox = Tabs.Main:AddLeftGroupbox('Quick Controls')
 QuickBox:AddToggle('AntiAFK', { Text = 'Anti-AFK', Default = true, Callback = function(v) Cfg.AntiAFK = v end })
-QuickBox:AddButton('Launch Advanced Roller', function()
+QuickBox:AddButton('🚀 Launch Advanced Roller', function()
     local url = "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/refs/heads/master/oneclick.lua" -- User will configure this
     if url ~= "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/refs/heads/master/oneclick.lua" then
         loadstring(game:HttpGet(url))()
