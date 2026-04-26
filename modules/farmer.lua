@@ -12,9 +12,10 @@ local _stats = { cycleCount = 0, tilesThisCycle = 0, totalHarvested = 0 }
 
 local defaults = {
     enabled = false,
-    firesPerCycle = 120,           -- Higher = faster (test 80-180)
+    firesPerCycle = 120,           -- Max fires per scheduler tick (respects Network rate limits now)
     useStrictMode = false,         -- true = only priority fruits
     priorityFruits = {},           -- Multi-select from GUI
+    collectDelay = 0,              -- Extra delay between fires (seconds)
 }
 
 local function getConfig(key)
@@ -22,7 +23,7 @@ local function getConfig(key)
 end
 
 local function tick()
-    if not getConfig("enabled") then return end   -- This fixes the "doesn't stop" bug
+    if not getConfig("enabled") then return end
 
     local plot = Utils.getPlot()
     if not plot then return end
@@ -69,28 +70,21 @@ local function tick()
     _stats.cycleCount = _stats.cycleCount + 1
     local fired = 0
     local maxFires = getConfig("firesPerCycle")
+    local delay = getConfig("collectDelay")
 
     for _, tile in ipairs(tilesToHarvest) do
+        -- Re-check enabled every iteration so toggling off stops immediately
         if fired >= maxFires or not getConfig("enabled") then 
             break 
         end
 
-
-        pcall(function()
-            Network.fireBypass(ClickEvent, tile)
-        end)
-
-        -- Fallback on visible parts
-        for _, desc in ipairs(tile:GetDescendants()) do
-            if desc:IsA("BasePart") and desc.Transparency < 1 then
-                pcall(function()
-                    Network.fireBypass(ClickEvent, desc)
-                end)
-                break
-            end
-        end
-
+        -- Single fire per tile using rate-limited Network.fire (no bypass)
+        Network.fire(ClickEvent, tile)
         fired = fired + 1
+
+        if delay > 0 then
+            task.wait(delay)
+        end
     end
 
     _stats.tilesThisCycle = fired
