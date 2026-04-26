@@ -169,6 +169,23 @@ function GUI.build(state)
         Default = Config.Farmer.enabled or false,
         Callback = function(v) Config.Farmer.enabled = v end
     })
+    HarvestBox:AddDropdown("HarvestMode", {
+        Values = { "True Bypass", "Anchored Snap", "Batch Snap" },
+        Default = (Config.Farmer.harvestMode == "bypass" and "True Bypass")
+            or (Config.Farmer.harvestMode == "snap" and "Anchored Snap")
+            or "Batch Snap",
+        Text = "Harvest Mode",
+        Callback = function(v)
+            local map = { ["True Bypass"] = "bypass", ["Anchored Snap"] = "snap", ["Batch Snap"] = "batch" }
+            Config.Farmer.harvestMode = map[v] or "batch"
+        end
+    })
+    HarvestBox:AddSlider("TilesPerFrame", {
+        Text = "Tiles per Frame (Batch)",
+        Default = Config.Farmer.tilesPerFrame or 10,
+        Min = 1, Max = 30, Rounding = 0,
+        Callback = function(v) Config.Farmer.tilesPerFrame = v end
+    })
     HarvestBox:AddSlider("FiresPerCycle", {
         Text = "Max Fires per Cycle",
         Default = Config.Farmer.firesPerCycle or 120,
@@ -180,6 +197,19 @@ function GUI.build(state)
         Default = Config.Farmer.collectDelay or 0,
         Min = 0, Max = 0.1, Rounding = 4,
         Callback = function(v) Config.Farmer.collectDelay = v end
+    })
+
+    local BypassBox = Tabs.Farming:AddRightGroupbox("Bypass Settings")
+    BypassBox:AddToggle("ClaimOwnership", {
+        Text = "Claim Network Ownership",
+        Default = Config.Farmer.claimOwnership or false,
+        Callback = function(v) Config.Farmer.claimOwnership = v end
+    })
+    BypassBox:AddSlider("YOffset", {
+        Text = "TP Height Offset",
+        Default = Config.Farmer.yOffset or 3.5,
+        Min = 0, Max = 10, Rounding = 1,
+        Callback = function(v) Config.Farmer.yOffset = v end
     })
 
     local FilterBox = Tabs.Farming:AddRightGroupbox("Filters")
