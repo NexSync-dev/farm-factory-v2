@@ -49,8 +49,8 @@ function GUI.build(state)
     StatusBox:AddButton({
         Text = "Launch Advanced Roller",
         Func = function()
-            local url = "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/refs/heads/master/oneclick.lua"
-            if url ~= "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/refs/heads/master/oneclick.lua" then
+            local url = "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/refs/heads/master/nexsync_roller.lua"
+            if url ~= "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/refs/heads/master/nexsync_roller.lua" then
                 loadstring(game:HttpGet(url))()
             else
                 Library:Notify("Please configure the URL in the script first!")
