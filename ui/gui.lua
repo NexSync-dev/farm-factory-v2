@@ -34,13 +34,11 @@ function GUI.build(state)
     Visuals = state.Visuals
     Config = state.Config
 
-    -- Use LinoriaLib passed through State (no re-download)
     if state._LinoriaLib and state._ThemeManager and state._SaveManager then
         Library = state._LinoriaLib
         ThemeManager = state._ThemeManager
         SaveManager = state._SaveManager
     else
-        -- Fallback: fetch from GitHub if not passed
         local repo = "https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/"
         Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
         ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
@@ -63,9 +61,6 @@ function GUI.build(state)
     state._library = Library
     state._unloaded = false
 
-    ---------------------------------------------------------------
-    -- MAIN TAB
-    ---------------------------------------------------------------
     local StatusBox = Tabs.Main:AddLeftGroupbox("Quick Controls")
     StatusBox:AddToggle("MasterToggle", {
         Text = "▶ Master Enable",
@@ -162,9 +157,6 @@ function GUI.build(state)
         end
     })
 
-    ---------------------------------------------------------------
-    -- FARMING TAB
-    ---------------------------------------------------------------
     local HarvestBox = Tabs.Farming:AddLeftGroupbox("Harvesting")
     HarvestBox:AddToggle("FarmerEnabled", {
         Text = "Auto Collect",
@@ -246,9 +238,6 @@ function GUI.build(state)
         SellBox:AddLabel("AutoSell module unavailable")
     end
 
-    ---------------------------------------------------------------
-    -- UPGRADES TAB
-    ---------------------------------------------------------------
     local UpgradeBox = Tabs.Upgrades:AddLeftGroupbox("Auto Upgrades")
     if Upgrades and Upgrades.getUpgradeNames then
         for _, name in ipairs(Upgrades.getUpgradeNames()) do
@@ -262,9 +251,6 @@ function GUI.build(state)
         UpgradeBox:AddLabel("Upgrades module unavailable")
     end
 
-    ---------------------------------------------------------------
-    -- SNIPER TAB  (controls talk directly to Sniper module, NOT Scheduler)
-    ---------------------------------------------------------------
     local SniperBox = Tabs.Sniper:AddLeftGroupbox("Sniper Settings")
     SniperBox:AddDropdown("TargetFruits", {
         Values = FruitList, Multi = true,
@@ -331,9 +317,6 @@ function GUI.build(state)
     })
     local sniperStatsLabel = SniperCtrl:AddLabel("Attempts: 0 | Rolls: 0 | Matches: 0 | Bought: 0 | Skipped: 0")
 
-    ---------------------------------------------------------------
-    -- BEE BUYER TAB
-    ---------------------------------------------------------------
     local BeeBox = Tabs.Bees:AddLeftGroupbox("Bee Shop")
     local beeList = (BeeBuyer and BeeBuyer.getBeeList and BeeBuyer.getBeeList()) or {}
 
@@ -364,8 +347,6 @@ function GUI.build(state)
         })
 
         local beeStatsLabel = BeeBox:AddLabel("Bought: 0 | Failed: 0 | Last: None")
-
-        -- Update bee stats in the main stats loop below
         state._beeStatsLabel = beeStatsLabel
     else
         BeeBox:AddLabel("No bees found in ReplicatedStorage")
@@ -380,9 +361,6 @@ function GUI.build(state)
     BeeInfoBox:AddLabel("• Not enough money")
     BeeInfoBox:AddLabel("• Bee Salesman is closed")
 
-    ---------------------------------------------------------------
-    -- VISUALS TAB
-    ---------------------------------------------------------------
     local HideBox = Tabs.Visuals:AddLeftGroupbox("Hide Us")
     HideBox:AddToggle("HideUsEnabled", {
         Text = "Enable Hide Us (Avatars)",
@@ -416,9 +394,6 @@ function GUI.build(state)
         Callback = function(v) Visuals.setConfig("hidePlot", v) end
     })
 
-    ---------------------------------------------------------------
-    -- UI SETTINGS TAB
-    ---------------------------------------------------------------
     local UISettingsBox = Tabs["UI Settings"]:AddLeftGroupbox("Menu Settings")
     UISettingsBox:AddLabel("Menu Toggle"):AddKeyPicker("MenuKeybind", {
         Default = "RightShift",
@@ -426,16 +401,13 @@ function GUI.build(state)
         Text = "Menu Toggle",
         Callback = function() Library:Toggle() end
     })
-    Library.ToggleKeybind = Options.MenuKeybind -- Bind Linoria's internal toggle to our picker
+    Library.ToggleKeybind = Options.MenuKeybind
 
     SaveManager:SetLibrary(Library)
     SaveManager:BuildConfigSection(Tabs["UI Settings"])
     ThemeManager:SetLibrary(Library)
     ThemeManager:ApplyToTab(Tabs["UI Settings"])
 
-    ---------------------------------------------------------------
-    -- STATS UPDATE LOOP (terminates on unload)
-    ---------------------------------------------------------------
     task.spawn(function()
         while not state._unloaded do
             local farmerStats = (Farmer and Farmer.getStats and Farmer.getStats()) or { totalHarvested = 0, cycleCount = 0 }
@@ -456,7 +428,6 @@ function GUI.build(state)
                 ))
             end)
 
-            -- Bee stats
             if state._beeStatsLabel and BeeBuyer and BeeBuyer.getStats then
                 pcall(function()
                     local bs = BeeBuyer.getStats()

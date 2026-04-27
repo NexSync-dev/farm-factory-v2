@@ -5,7 +5,7 @@ local LP = Players.LocalPlayer
 
 local _state = {
     hideUs = false,
-    avatarId = 4050212733, -- Default Bacon Hair (actually a bundle or specific ID)
+    avatarId = 4050212733,
     spoofName = "sorry",
     spoofNameEnabled = false,
     spoofCurrencies = false,
@@ -15,13 +15,11 @@ local _state = {
 local connections = {}
 
 function Visuals.init(state)
-    -- Initialize if needed
 end
 
 function Visuals.setHideUs(v)
     _state.hideUs = v
     if not v then
-        -- Clear spoof tags so they can be reapplied if enabled again
         for _, player in ipairs(Players:GetPlayers()) do
             local char = player.Character
             if char then
@@ -53,28 +51,26 @@ local function getBaconDesc(id)
 end
 
 local function applyToPlayer(player)
-    if not _state.hideUs then return end
-    
     local char = player.Character
     if char then
         local humanoid = char:FindFirstChildOfClass("Humanoid")
         if humanoid then
-            -- Name Spoofing
-            if _state.spoofNameEnabled then
+            if _state.spoofNameEnabled and _state.spoofName ~= "" then
                 if humanoid.DisplayName ~= _state.spoofName then
                     humanoid.DisplayName = _state.spoofName
                 end
             end
             
-            -- Avatar Spoofing (Bacons)
-            if not char:FindFirstChild("NexSync_Spoofed") then
-                local desc = getBaconDesc(_state.avatarId)
-                if desc then
-                    local ok, err = pcall(function() humanoid:ApplyDescription(desc) end)
-                    if ok then
-                        local tag = Instance.new("BoolValue")
-                        tag.Name = "NexSync_Spoofed"
-                        tag.Parent = char
+            if _state.hideUs then
+                if not char:FindFirstChild("NexSync_Spoofed") then
+                    local desc = getBaconDesc(_state.avatarId)
+                    if desc then
+                        pcall(function() 
+                            humanoid:ApplyDescription(desc) 
+                            local tag = Instance.new("BoolValue")
+                            tag.Name = "NexSync_Spoofed"
+                            tag.Parent = char
+                        end)
                     end
                 end
             end
@@ -82,10 +78,9 @@ local function applyToPlayer(player)
     end
 end
 
--- Currency Loop
 task.spawn(function()
     while true do
-        if _state.hideUs and _state.spoofCurrencies then
+        if _state.spoofCurrencies then
             pcall(function()
                 local mainGui = LP.PlayerGui:FindFirstChild("Main")
                 if mainGui then
@@ -122,11 +117,12 @@ task.spawn(function()
             end
         end)
         
-        if _state.hideUs and _state.spoofName ~= "" then
+        if _state.spoofNameEnabled and _state.spoofName ~= "" then
             pcall(function()
-                -- Attempt to spoof the actual Player object for CoreGui/PlayerList
-                if LP.DisplayName ~= _state.spoofName then
-                    LP.DisplayName = _state.spoofName
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player.DisplayName ~= _state.spoofName then
+                        player.DisplayName = _state.spoofName
+                    end
                 end
             end)
         end
@@ -135,12 +131,9 @@ task.spawn(function()
     end
 end)
 
--- Apply to existing and new players
 RunService.Heartbeat:Connect(function()
-    if _state.hideUs then
-        for _, player in ipairs(Players:GetPlayers()) do
-            applyToPlayer(player)
-        end
+    for _, player in ipairs(Players:GetPlayers()) do
+        applyToPlayer(player)
     end
 end)
 

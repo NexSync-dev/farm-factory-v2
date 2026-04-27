@@ -46,7 +46,6 @@ local function fetchOptional(path)
     return nil
 end
 
--- Load LinoriaLib once here, pass to GUI via State
 local function loadLinoria()
     local function tryLoad(urls)
         for _, url in ipairs(urls) do
