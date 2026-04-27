@@ -385,9 +385,14 @@ function GUI.build(state)
     ---------------------------------------------------------------
     local HideBox = Tabs.Visuals:AddLeftGroupbox("Hide Us")
     HideBox:AddToggle("HideUsEnabled", {
-        Text = "Enable Hide Us",
+        Text = "Enable Hide Us (Avatars)",
         Default = false,
         Callback = function(v) Visuals.setHideUs(v) end
+    })
+    HideBox:AddToggle("SpoofNameEnabled", {
+        Text = "Enable Name Spoof",
+        Default = false,
+        Callback = function(v) Visuals.setConfig("spoofNameEnabled", v) end
     })
     HideBox:AddInput("SpoofName", {
         Text = "Spoof Name",

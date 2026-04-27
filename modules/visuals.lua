@@ -7,6 +7,7 @@ local _state = {
     hideUs = false,
     avatarId = 4050212733, -- Default Bacon Hair (actually a bundle or specific ID)
     spoofName = "sorry",
+    spoofNameEnabled = false,
     spoofCurrencies = false,
     hidePlot = false
 }
@@ -20,8 +21,14 @@ end
 function Visuals.setHideUs(v)
     _state.hideUs = v
     if not v then
-        -- Reset if needed (though local changes are hard to revert perfectly without a refresh)
-        return
+        -- Clear spoof tags so they can be reapplied if enabled again
+        for _, player in ipairs(Players:GetPlayers()) do
+            local char = player.Character
+            if char then
+                local tag = char:FindFirstChild("NexSync_Spoofed")
+                if tag then tag:Destroy() end
+            end
+        end
     end
 end
 
@@ -53,20 +60,22 @@ local function applyToPlayer(player)
         local humanoid = char:FindFirstChildOfClass("Humanoid")
         if humanoid then
             -- Name Spoofing
-            if humanoid.DisplayName ~= _state.spoofName then
-                humanoid.DisplayName = _state.spoofName
+            if _state.spoofNameEnabled then
+                if humanoid.DisplayName ~= _state.spoofName then
+                    humanoid.DisplayName = _state.spoofName
+                end
             end
             
             -- Avatar Spoofing (Bacons)
             if not char:FindFirstChild("NexSync_Spoofed") then
                 local desc = getBaconDesc(_state.avatarId)
                 if desc then
-                    pcall(function() 
-                        humanoid:ApplyDescription(desc) 
+                    local ok, err = pcall(function() humanoid:ApplyDescription(desc) end)
+                    if ok then
                         local tag = Instance.new("BoolValue")
                         tag.Name = "NexSync_Spoofed"
                         tag.Parent = char
-                    end)
+                    end
                 end
             end
         end
@@ -96,18 +105,28 @@ task.spawn(function()
             end)
         end
         
-        if _state.hideUs and _state.hidePlot then
-            pcall(function()
-                local Plots = workspace:FindFirstChild("Plots")
-                if Plots then
-                    local myPlot = Plots:FindFirstChild(LP.Name) or Plots:FindFirstChild(LP.DisplayName)
-                    if myPlot then
-                        for _, part in ipairs(myPlot:GetDescendants()) do
-                            if part:IsA("BasePart") then
-                                part.LocalTransparencyModifier = 1
+        pcall(function()
+            local Plots = workspace:FindFirstChild("Plots")
+            if Plots then
+                local myPlot = Plots:FindFirstChild(LP.Name) or Plots:FindFirstChild(LP.DisplayName)
+                if myPlot then
+                    local targetTransparency = (_state.hideUs and _state.hidePlot) and 1 or 0
+                    for _, part in ipairs(myPlot:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            if part.LocalTransparencyModifier ~= targetTransparency then
+                                part.LocalTransparencyModifier = targetTransparency
                             end
                         end
                     end
+                end
+            end
+        end)
+        
+        if _state.hideUs and _state.spoofName ~= "" then
+            pcall(function()
+                -- Attempt to spoof the actual Player object for CoreGui/PlayerList
+                if LP.DisplayName ~= _state.spoofName then
+                    LP.DisplayName = _state.spoofName
                 end
             end)
         end
