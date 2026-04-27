@@ -1,7 +1,7 @@
 local GUI = {}
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local Utils, Scheduler, Network, Farmer, Sniper, AutoSell, Upgrades, AntiAFK, BeeBuyer, Config
+local Utils, Scheduler, Network, Farmer, Sniper, AutoSell, Upgrades, AntiAFK, BeeBuyer, Visuals, Config
 local Library, ThemeManager, SaveManager
 
 local function buildFruitList()
@@ -31,6 +31,7 @@ function GUI.build(state)
     Upgrades = state.Upgrades
     AntiAFK = state.AntiAFK
     BeeBuyer = state.BeeBuyer
+    Visuals = state.Visuals
     Config = state.Config
 
     -- Use LinoriaLib passed through State (no re-download)
@@ -55,6 +56,7 @@ function GUI.build(state)
         Upgrades = Window:AddTab("Upgrades"),
         Sniper = Window:AddTab("Roll Sniper"),
         Bees = Window:AddTab("Bee Buyer"),
+        Visuals = Window:AddTab("Visuals"),
         ["UI Settings"] = Window:AddTab("UI Settings"),
     }
 
@@ -379,8 +381,48 @@ function GUI.build(state)
     BeeInfoBox:AddLabel("• Bee Salesman is closed")
 
     ---------------------------------------------------------------
+    -- VISUALS TAB
+    ---------------------------------------------------------------
+    local HideBox = Tabs.Visuals:AddLeftGroupbox("Hide Us")
+    HideBox:AddToggle("HideUsEnabled", {
+        Text = "Enable Hide Us",
+        Default = false,
+        Callback = function(v) Visuals.setHideUs(v) end
+    })
+    HideBox:AddInput("SpoofName", {
+        Text = "Spoof Name",
+        Default = "sorry",
+        Callback = function(v) Visuals.setConfig("spoofName", v) end
+    })
+    HideBox:AddInput("AvatarID", {
+        Text = "Avatar/Bacon ID",
+        Default = "4050212733",
+        Numeric = true,
+        Callback = function(v) Visuals.setConfig("avatarId", tonumber(v) or 4050212733) end
+    })
+    HideBox:AddToggle("SpoofCurrencies", {
+        Text = "Fake Inf Currencies",
+        Default = false,
+        Callback = function(v) Visuals.setConfig("spoofCurrencies", v) end
+    })
+    HideBox:AddToggle("HidePlot", {
+        Text = "Hide My Plot",
+        Default = false,
+        Callback = function(v) Visuals.setConfig("hidePlot", v) end
+    })
+
+    ---------------------------------------------------------------
     -- UI SETTINGS TAB
     ---------------------------------------------------------------
+    local UISettingsBox = Tabs["UI Settings"]:AddLeftGroupbox("Menu Settings")
+    UISettingsBox:AddLabel("Menu Toggle"):AddKeyPicker("MenuKeybind", {
+        Default = "RightShift",
+        NoUI = true,
+        Text = "Menu Toggle",
+        Callback = function() Library:Toggle() end
+    })
+    Library.ToggleKeybind = Options.MenuKeybind -- Bind Linoria's internal toggle to our picker
+
     SaveManager:SetLibrary(Library)
     SaveManager:BuildConfigSection(Tabs["UI Settings"])
     ThemeManager:SetLibrary(Library)

@@ -16,6 +16,9 @@ local Library = tryLoadModule({
 local ThemeManager = tryLoadModule({
     'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua',
 })
+local SaveManager = tryLoadModule({
+    'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua',
+})
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -329,6 +332,23 @@ local SecurityBox = Tabs.Automation:AddRightGroupbox('Security')
 SecurityBox:AddDropdown('DisconnectTargets', { Values = FruitList, Multi = true, Text = 'Disconnect Targets', AllowNull = true, Callback = function(v) Cfg.disconnectTargets = v end })
 SecurityBox:AddToggle('DisconnectOnFind', { Text = 'Disconnect on Rare', Default = false, Callback = function(v) Cfg.disconnectOnFind = v end })
 
+local UISettingsBox = Tabs['UI Settings']:AddLeftGroupbox("Menu Settings")
+UISettingsBox:AddLabel("Menu Toggle"):AddKeyPicker("MenuKeybind", {
+    Default = "RightShift",
+    NoUI = true,
+    Text = "Menu Toggle",
+    Callback = function() Library:Toggle() end
+})
+Library.ToggleKeybind = Options.MenuKeybind
+
 ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
+
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
+SaveManager:BuildConfigSection(Tabs['UI Settings'])
+
+SaveManager:LoadAutoloadConfig()
 Library:Notify("NexSync Standalone Roller V2 Loaded!")

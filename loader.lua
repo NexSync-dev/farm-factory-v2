@@ -107,7 +107,7 @@ Network.init(State)
 Scheduler.init(State)
 
 step(0.5, "loading modules...")
-local requiredModules = { "modules/farmer.lua", "modules/sniper.lua", "modules/antiafk.lua" }
+local requiredModules = { "modules/visuals.lua", "modules/farmer.lua", "modules/sniper.lua", "modules/antiafk.lua" }
 local optionalModules = { "modules/autosell.lua", "modules/upgrades.lua", "modules/beebuyer.lua" }
 local loaded = {}
 local totalMods = #requiredModules + #optionalModules
@@ -134,6 +134,7 @@ State.AutoSell = loaded["modules/autosell.lua"]
 State.Upgrades = loaded["modules/upgrades.lua"]
 State.AntiAFK = loaded["modules/antiafk.lua"]
 State.BeeBuyer = loaded["modules/beebuyer.lua"]
+State.Visuals = loaded["modules/visuals.lua"]
 
 step(0.9, "building gui...")
 local GUI = fetch("ui/gui.lua")
