@@ -2,21 +2,17 @@ local Visuals = {}
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LP = Players.LocalPlayer
-
 local _state = {
     hideUs = false,
-    avatarId = 4050212733,
+    avatarId = 1,
     spoofName = "sorry",
     spoofNameEnabled = false,
     spoofCurrencies = false,
     hidePlot = false
 }
-
 local connections = {}
-
 function Visuals.init(state)
 end
-
 function Visuals.setHideUs(v)
     _state.hideUs = v
     if not v then
@@ -29,19 +25,18 @@ function Visuals.setHideUs(v)
         end
     end
 end
-
 function Visuals.setConfig(key, value)
     _state[key] = value
 end
-
 local cachedDesc = nil
 local lastCachedId = nil
-
 local function getBaconDesc(id)
     if cachedDesc and lastCachedId == id then
         return cachedDesc
     end
-    local ok, desc = pcall(function() return Players:GetHumanoidDescriptionFromUserId(id) end)
+    local ok, desc = pcall(function() 
+        return Players:GetHumanoidDescriptionFromUserId(id) 
+    end)
     if ok and desc then
         cachedDesc = desc
         lastCachedId = id
@@ -49,7 +44,6 @@ local function getBaconDesc(id)
     end
     return nil
 end
-
 local function applyToPlayer(player)
     local char = player.Character
     if char then
@@ -60,24 +54,24 @@ local function applyToPlayer(player)
                     humanoid.DisplayName = _state.spoofName
                 end
             end
-            
             if _state.hideUs then
                 if not char:FindFirstChild("NexSync_Spoofed") then
                     local desc = getBaconDesc(_state.avatarId)
                     if desc then
-                        pcall(function() 
+                        local ok = pcall(function() 
                             humanoid:ApplyDescription(desc) 
+                        end)
+                        if ok then
                             local tag = Instance.new("BoolValue")
                             tag.Name = "NexSync_Spoofed"
                             tag.Parent = char
-                        end)
+                        end
                     end
                 end
             end
         end
     end
 end
-
 task.spawn(function()
     while true do
         if _state.spoofCurrencies then
@@ -99,7 +93,6 @@ task.spawn(function()
                 end
             end)
         end
-        
         pcall(function()
             local Plots = workspace:FindFirstChild("Plots")
             if Plots then
@@ -116,7 +109,6 @@ task.spawn(function()
                 end
             end
         end)
-        
         if _state.spoofNameEnabled and _state.spoofName ~= "" then
             pcall(function()
                 for _, player in ipairs(Players:GetPlayers()) do
@@ -126,15 +118,12 @@ task.spawn(function()
                 end
             end)
         end
-        
         task.wait(0.5)
     end
 end)
-
 RunService.Heartbeat:Connect(function()
     for _, player in ipairs(Players:GetPlayers()) do
         applyToPlayer(player)
     end
 end)
-
 return Visuals
