@@ -326,7 +326,7 @@ function GUI.build(state)
     })
     SniperCtrl:AddSlider("AutoProceedDelay", {
         Text = "wait",
-        Default = Config.Sniper.autoProceedAfterBuy or 1.2,
+        Default = Config.Sniper.autoProceedDelay or 1.2,
         Min = 0.1, Max = 5, Rounding = 1,
         Callback = function(v) Config.Sniper.autoProceedDelay = v end
     })
@@ -375,6 +375,8 @@ function GUI.build(state)
 
         local beeStatsLabel = BeeBox:AddLabel("bought: 0")
         state._beeStatsLabel = beeStatsLabel
+    else
+        BeeBox:AddLabel("no bees found")
     end
 
     local BeeInfoBox = Tabs.Bees:AddRightGroupbox("info")
@@ -387,7 +389,6 @@ function GUI.build(state)
         Text = "toggle",
         Callback = function() Library:Toggle() end
     })
-    Library.ToggleKeybind = Options.MenuKeybind
 
     SaveManager:SetLibrary(Library)
     SaveManager:BuildConfigSection(Tabs["UI Settings"])
