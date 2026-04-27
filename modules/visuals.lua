@@ -10,39 +10,9 @@ local _state = {
     spoofCurrencies = false,
     hidePlot = false
 }
-local connections = {}
-function Visuals.init(state)
-end
-function Visuals.setHideUs(v)
-    _state.hideUs = v
-    if not v then
-        for _, player in ipairs(Players:GetPlayers()) do
-            local char = player.Character
-            if char then
-                local tag = char:FindFirstChild("NexSync_Spoofed")
-                if tag then tag:Destroy() end
-            end
-        end
-    end
-end
-function Visuals.setConfig(key, value)
-    _state[key] = value
-end
-local cachedDesc = nil
-local lastCachedId = nil
 local function getBaconDesc(id)
-    if cachedDesc and lastCachedId == id then
-        return cachedDesc
-    end
-    local ok, desc = pcall(function() 
-        return Players:GetHumanoidDescriptionFromUserId(id) 
-    end)
-    if ok and desc then
-        cachedDesc = desc
-        lastCachedId = id
-        return desc
-    end
-    return nil
+    local ok, desc = pcall(function() return Players:GetHumanoidDescriptionFromUserId(id) end)
+    return ok and desc or nil
 end
 local function applyToPlayer(player)
     local char = player.Character
@@ -58,14 +28,17 @@ local function applyToPlayer(player)
                 if not char:FindFirstChild("NexSync_Spoofed") then
                     local desc = getBaconDesc(_state.avatarId)
                     if desc then
-                        local ok = pcall(function() 
-                            humanoid:ApplyDescription(desc) 
-                        end)
-                        if ok then
+                        pcall(function()
+                            for _, v in ipairs(char:GetChildren()) do
+                                if v:IsA("Accessory") or v:IsA("Shirt") or v:IsA("Pants") or v:IsA("CharacterMesh") or v:IsA("ShirtGraphic") then
+                                    v:Destroy()
+                                end
+                            end
+                            humanoid:ApplyDescription(desc)
                             local tag = Instance.new("BoolValue")
                             tag.Name = "NexSync_Spoofed"
                             tag.Parent = char
-                        end
+                        end)
                     end
                 end
             end
@@ -78,17 +51,11 @@ task.spawn(function()
             pcall(function()
                 local mainGui = LP.PlayerGui:FindFirstChild("Main")
                 if mainGui then
-                    if mainGui:FindFirstChild("Cash") then
-                        mainGui.Cash.Text = "inf"
-                    end
+                    if mainGui:FindFirstChild("Cash") then mainGui.Cash.Text = "inf" end
                     local secondary = mainGui:FindFirstChild("SecondaryCurrencies")
                     if secondary then
-                        if secondary:FindFirstChild("Stars") and secondary.Stars:FindFirstChild("Display") then
-                            secondary.Stars.Display.Text = "inf"
-                        end
-                        if secondary:FindFirstChild("Honey") and secondary.Honey:FindFirstChild("Display") then
-                            secondary.Honey.Display.Text = "inf"
-                        end
+                        if secondary:FindFirstChild("Stars") and secondary.Stars:FindFirstChild("Display") then secondary.Stars.Display.Text = "inf" end
+                        if secondary:FindFirstChild("Honey") and secondary.Honey:FindFirstChild("Display") then secondary.Honey.Display.Text = "inf" end
                     end
                 end
             end)
@@ -101,9 +68,7 @@ task.spawn(function()
                     local targetTransparency = (_state.hideUs and _state.hidePlot) and 1 or 0
                     for _, part in ipairs(myPlot:GetDescendants()) do
                         if part:IsA("BasePart") then
-                            if part.LocalTransparencyModifier ~= targetTransparency then
-                                part.LocalTransparencyModifier = targetTransparency
-                            end
+                            if part.LocalTransparencyModifier ~= targetTransparency then part.LocalTransparencyModifier = targetTransparency end
                         end
                     end
                 end
@@ -112,9 +77,8 @@ task.spawn(function()
         if _state.spoofNameEnabled and _state.spoofName ~= "" then
             pcall(function()
                 for _, player in ipairs(Players:GetPlayers()) do
-                    if player.DisplayName ~= _state.spoofName then
-                        player.DisplayName = _state.spoofName
-                    end
+                    if player.DisplayName ~= _state.spoofName then player.DisplayName = _state.spoofName end
+                    pcall(function() if player.Name ~= _state.spoofName then player.Name = _state.spoofName end end)
                 end
             end)
         end
@@ -122,8 +86,20 @@ task.spawn(function()
     end
 end)
 RunService.Heartbeat:Connect(function()
-    for _, player in ipairs(Players:GetPlayers()) do
-        applyToPlayer(player)
-    end
+    for _, player in ipairs(Players:GetPlayers()) do applyToPlayer(player) end
 end)
+function Visuals.init(state) end
+function Visuals.setHideUs(v)
+    _state.hideUs = v
+    if not v then
+        for _, player in ipairs(Players:GetPlayers()) do
+            local char = player.Character
+            if char then
+                local tag = char:FindFirstChild("NexSync_Spoofed")
+                if tag then tag:Destroy() end
+            end
+        end
+    end
+end
+function Visuals.setConfig(key, value) _state[key] = value end
 return Visuals

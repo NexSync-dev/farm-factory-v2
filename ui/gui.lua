@@ -50,12 +50,11 @@ function GUI.build(state)
     local Window = Library:CreateWindow({ Title = "Farm Tool | V2", Center = true, AutoShow = true })
     local Tabs = {
         Main = Window:AddTab("Main"),
-        Farming = Window:AddTab("Farming"),
+        Farming = Window:AddTab("Farm"),
         Upgrades = Window:AddTab("Upgrades"),
-        Sniper = Window:AddTab("Roll Sniper"),
-        Bees = Window:AddTab("Bee Buyer"),
-        Visuals = Window:AddTab("Visuals"),
-        ["UI Settings"] = Window:AddTab("UI Settings"),
+        Sniper = Window:AddTab("Sniper"),
+        Bees = Window:AddTab("Bees"),
+        ["UI Settings"] = Window:AddTab("UI"),
     }
 
     state._library = Library
@@ -113,7 +112,40 @@ function GUI.build(state)
         end
     })
 
-    local GenBox = Tabs.Main:AddLeftGroupbox("General")
+    local HideBox = Tabs.Main:AddLeftGroupbox("Hide Us")
+    HideBox:AddToggle("HideUsEnabled", {
+        Text = "Enable Hide Us (Avatars)",
+        Default = false,
+        Callback = function(v) Visuals.setHideUs(v) end
+    })
+    HideBox:AddToggle("SpoofNameEnabled", {
+        Text = "Enable Name Spoof",
+        Default = false,
+        Callback = function(v) Visuals.setConfig("spoofNameEnabled", v) end
+    })
+    HideBox:AddInput("SpoofName", {
+        Text = "Spoof Name",
+        Default = "sorry",
+        Callback = function(v) Visuals.setConfig("spoofName", v) end
+    })
+    HideBox:AddInput("AvatarID", {
+        Text = "Avatar/Bacon ID",
+        Default = "4050212733",
+        Numeric = true,
+        Callback = function(v) Visuals.setConfig("avatarId", tonumber(v) or 4050212733) end
+    })
+    HideBox:AddToggle("SpoofCurrencies", {
+        Text = "Fake Inf Currencies",
+        Default = false,
+        Callback = function(v) Visuals.setConfig("spoofCurrencies", v) end
+    })
+    HideBox:AddToggle("HidePlot", {
+        Text = "Hide My Plot",
+        Default = false,
+        Callback = function(v) Visuals.setConfig("hidePlot", v) end
+    })
+
+    local GenBox = Tabs.Main:AddRightGroupbox("General")
     GenBox:AddToggle("AntiAFK", {
         Text = "Anti-AFK",
         Default = Config.AntiAFK.antiAFK ~= false,
@@ -360,39 +392,6 @@ function GUI.build(state)
     BeeInfoBox:AddLabel("Possible errors:")
     BeeInfoBox:AddLabel("• Not enough money")
     BeeInfoBox:AddLabel("• Bee Salesman is closed")
-
-    local HideBox = Tabs.Visuals:AddLeftGroupbox("Hide Us")
-    HideBox:AddToggle("HideUsEnabled", {
-        Text = "Enable Hide Us (Avatars)",
-        Default = false,
-        Callback = function(v) Visuals.setHideUs(v) end
-    })
-    HideBox:AddToggle("SpoofNameEnabled", {
-        Text = "Enable Name Spoof",
-        Default = false,
-        Callback = function(v) Visuals.setConfig("spoofNameEnabled", v) end
-    })
-    HideBox:AddInput("SpoofName", {
-        Text = "Spoof Name",
-        Default = "sorry",
-        Callback = function(v) Visuals.setConfig("spoofName", v) end
-    })
-    HideBox:AddInput("AvatarID", {
-        Text = "Avatar/Bacon ID",
-        Default = "4050212733",
-        Numeric = true,
-        Callback = function(v) Visuals.setConfig("avatarId", tonumber(v) or 4050212733) end
-    })
-    HideBox:AddToggle("SpoofCurrencies", {
-        Text = "Fake Inf Currencies",
-        Default = false,
-        Callback = function(v) Visuals.setConfig("spoofCurrencies", v) end
-    })
-    HideBox:AddToggle("HidePlot", {
-        Text = "Hide My Plot",
-        Default = false,
-        Callback = function(v) Visuals.setConfig("hidePlot", v) end
-    })
 
     local UISettingsBox = Tabs["UI Settings"]:AddLeftGroupbox("Menu Settings")
     UISettingsBox:AddLabel("Menu Toggle"):AddKeyPicker("MenuKeybind", {
