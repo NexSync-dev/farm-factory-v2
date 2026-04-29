@@ -345,4 +345,6 @@ SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
 SaveManager:BuildConfigSection(Tabs['UI Settings'])
 SaveManager:LoadAutoloadConfig()
+Library:Notify("Roller Config Loaded")
+if Cfg.enabled then Library:Notify("Roller Auto-Started") end
 Library:Notify("loaded")

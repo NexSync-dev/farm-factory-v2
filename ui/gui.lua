@@ -166,6 +166,11 @@ function GUI.build(state)
         Default = true,
         Callback = function(v) Utils.setDebug(v) end
     })
+    GenBox:AddToggle("AutoOpenRoller", {
+        Text = "auto open roller",
+        Default = Config.AutoOpenRoller or false,
+        Callback = function(v) Config.AutoOpenRoller = v end
+    })
 
     local NetBox = Tabs.Main:AddRightGroupbox("tuning")
     NetBox:AddSlider("ClickRate", {
@@ -465,6 +470,19 @@ function GUI.build(state)
     -- Auto Load Config
     pcall(function()
         SaveManager:LoadAutoloadConfig()
+        Library:Notify("Config Auto-Loaded")
+        
+        if Config.AutoOpenRoller then
+            task.spawn(function()
+                task.wait(1)
+                local ok, err = pcall(function()
+                    loadstring(game:HttpGet(
+                        "https://raw.githubusercontent.com/NexSync-dev/farm-factory-v2/master/nexsync_roller.lua?t=" .. tostring(os.time())
+                    ))()
+                end)
+                if ok then Library:Notify("Roller Auto-Opened") end
+            end)
+        end
     end)
 
     task.spawn(function()

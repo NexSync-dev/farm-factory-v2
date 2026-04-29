@@ -41,15 +41,29 @@ function ServerHop.getServers(sortType)
         end)
     elseif sortType == "lowest_ping" then
         table.sort(servers, function(a, b)
-            return a.ping < b.ping
+            local pa = tonumber(a.ping) or 9999
+            local pb = tonumber(b.ping) or 9999
+            if pa <= 0 then pa = 9999 end
+            if pb <= 0 then pb = 9999 end
+            if pa == pb then return a.playing < b.playing end
+            return pa < pb
         end)
     elseif sortType == "highest_ping" then
         table.sort(servers, function(a, b)
-            return a.ping > b.ping
+            local pa = tonumber(a.ping) or 0
+            local pb = tonumber(b.ping) or 0
+            return pa > pb
         end)
     end
     
-    return servers
+    local candidates = {}
+    for _, s in ipairs(servers) do
+        if s.id ~= game.JobId and s.playing < s.maxPlayers then
+            table.insert(candidates, s)
+        end
+    end
+    
+    return candidates
 end
 
 function ServerHop.hop(serverId)
