@@ -462,6 +462,11 @@ function GUI.build(state)
     ThemeManager:SetLibrary(Library)
     ThemeManager:ApplyToTab(Tabs["UI Settings"])
 
+    -- Auto Load Config
+    pcall(function()
+        SaveManager:LoadAutoloadConfig()
+    end)
+
     task.spawn(function()
         while not state._unloaded do
             local farmerStats = (Farmer and Farmer.getStats and Farmer.getStats()) or { totalHarvested = 0, cycleCount = 0 }
