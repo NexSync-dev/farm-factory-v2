@@ -61,6 +61,24 @@ function BeeBuyer.buyBee(beeName)
         return false, tostring(result)
     end
 end
+
+function BeeBuyer.buyAndLeave(beeName)
+    if not beeName or beeName == "" then return false, "No bee selected" end
+    if not BuyBeeEvent then return false, "BuyBee remote not found" end
+    
+    if Utils then Utils.log("INFO", "BeeBuyer: Executing Buy & Leave exploit for " .. beeName) end
+    
+    -- Fire and forget, then crash/leave
+    task.spawn(function()
+        pcall(function()
+            BuyBeeEvent:InvokeServer(beeName)
+        end)
+    end)
+    
+    task.wait(0.1) -- Minimal wait to ensure packet is sent
+    game:Shutdown()
+    return true
+end
 function BeeBuyer.init(state)
     Utils = state.Utils
     Network = state.Network

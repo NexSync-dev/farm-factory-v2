@@ -54,6 +54,7 @@ function GUI.build(state)
         Upgrades = Window:AddTab("upgrades"),
         Sniper = Window:AddTab("sniper"),
         Bees = Window:AddTab("bees"),
+        Server = Window:AddTab("server"),
         ["UI Settings"] = Window:AddTab("ui"),
     }
 
@@ -373,6 +374,17 @@ function GUI.build(state)
             end
         })
 
+        BeeBox:AddButton({
+            Text = "buy & leave",
+            Func = function()
+                if not selectedBee then
+                    Library:Notify("no bee")
+                    return
+                end
+                BeeBuyer.buyAndLeave(selectedBee)
+            end
+        })
+
         local beeStatsLabel = BeeBox:AddLabel("bought: 0")
         state._beeStatsLabel = beeStatsLabel
     else
@@ -381,6 +393,61 @@ function GUI.build(state)
 
     local BeeInfoBox = Tabs.Bees:AddRightGroupbox("info")
     BeeInfoBox:AddLabel("buy bees here")
+
+    local ServerHop = state.ServerHop
+    local HopBox = Tabs.Server:AddLeftGroupbox("manual hop")
+    HopBox:AddButton({
+        Text = "lowest ping",
+        Func = function()
+            local servers = ServerHop.getServers("lowest_ping")
+            if #servers > 0 then ServerHop.hop(servers[1].id) end
+        end
+    })
+    HopBox:AddButton({
+        Text = "lowest players",
+        Func = function()
+            local servers = ServerHop.getServers("lowest_players")
+            if #servers > 0 then ServerHop.hop(servers[1].id) end
+        end
+    })
+    HopBox:AddButton({
+        Text = "highest players",
+        Func = function()
+            local servers = ServerHop.getServers("highest_players")
+            if #servers > 0 then ServerHop.hop(servers[1].id) end
+        end
+    })
+    HopBox:AddButton({
+        Text = "highest ping",
+        Func = function()
+            local servers = ServerHop.getServers("highest_ping")
+            if #servers > 0 then ServerHop.hop(servers[1].id) end
+        end
+    })
+
+    local AutoHopBox = Tabs.Server:AddRightGroupbox("auto hop")
+    AutoHopBox:AddToggle("AutoHop", {
+        Text = "enabled",
+        Default = Config.ServerHop.autoHop or false,
+        Callback = function(v) Config.ServerHop.autoHop = v end
+    })
+    AutoHopBox:AddSlider("AutoHopThreshold", {
+        Text = "player limit",
+        Default = Config.ServerHop.autoHopThreshold or 10,
+        Min = 1, Max = 50, Rounding = 0,
+        Callback = function(v) Config.ServerHop.autoHopThreshold = v end
+    })
+    AutoHopBox:AddToggle("HopOnPing", {
+        Text = "hop on high ping",
+        Default = Config.ServerHop.hopOnPing or false,
+        Callback = function(v) Config.ServerHop.hopOnPing = v end
+    })
+    AutoHopBox:AddSlider("MaxPing", {
+        Text = "max ping",
+        Default = Config.ServerHop.maxPing or 300,
+        Min = 50, Max = 1000, Rounding = 0,
+        Callback = function(v) Config.ServerHop.maxPing = v end
+    })
 
     local UISettingsBox = Tabs["UI Settings"]:AddLeftGroupbox("menu")
     UISettingsBox:AddLabel("toggle"):AddKeyPicker("MenuKeybind", {
