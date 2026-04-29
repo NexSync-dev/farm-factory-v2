@@ -66,7 +66,35 @@ function BeeBuyer.buyAndLeave(beeName)
     if not beeName or beeName == "" then return false, "No bee selected" end
     if not BuyBeeEvent then return false, "BuyBee remote not found" end
     
-    if Utils then Utils.log("INFO", "BeeBuyer: Executing Buy & Leave exploit for " .. beeName) end
+    if Utils then Utils.log("INFO", "BeeBuyer: Executing Buy & Leave exploit with Network Lockdown for " .. beeName) end
+    
+    -- Network Lockdown: Hook remotes to prevent saving
+    local function lockdown()
+        local ok, err = pcall(function()
+            local oldFire, oldInvoke
+            local mt = getrawmetatable(game)
+            local oldNamecall = mt.__namecall
+            setreadonly(mt, false)
+            
+            mt.__namecall = newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                local name = self.Name:lower()
+                
+                if (method == "FireServer" or method == "InvokeServer") then
+                    if name:find("save") or name:find("sync") or name:find("data") or name:find("store") then
+                        if Utils then Utils.log("DEBUG", "BeeBuyer: Blocked save request to " .. self.Name) end
+                        return nil
+                    end
+                end
+                return oldNamecall(self, ...)
+            end)
+            
+            setreadonly(mt, true)
+        end)
+        if not ok and Utils then Utils.log("ERROR", "BeeBuyer: Failed to initialize Network Lockdown: " .. tostring(err)) end
+    end
+    
+    lockdown()
     
     -- Fire and forget, then crash/leave
     task.spawn(function()
