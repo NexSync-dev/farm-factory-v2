@@ -63,41 +63,50 @@ function GUI.build(state)
 
     local JunkBox = Tabs.Junk:AddLeftGroupbox("sell junk")
     local selectedJunk = {}
+    local autoSellJunkEnabled = false
+
     JunkBox:AddDropdown("JunkSelect", {
         Values = FruitList, Multi = true, Text = "select fruits", AllowNull = true,
         Callback = function(v) selectedJunk = v end
     })
-    JunkBox:AddButton({
-        Text = "sell selected",
-        Func = function()
-            local backpack = Players.LocalPlayer:FindFirstChild("Backpack")
-            if not backpack then return end
-            for name, isSelected in pairs(selectedJunk) do
-                if isSelected then
-                    local item = backpack:FindFirstChild(name)
-                    if item then
-                        local character = Players.LocalPlayer.Character
-                        if character then
-                            local humanoid = character:FindFirstChild("Humanoid")
-                            if humanoid then
-                                -- Unequip if already equipped
-                                if character:FindFirstChild(name) then
-                                    humanoid:UnequipTools()
-                                    task.wait(0.1)
-                                end
-                                -- Equip
-                                Players.LocalPlayer.Character:FindFirstChild("Humanoid"):EquipTool(item)
-                                task.wait(0.1)
-                                -- Delete
-                                local Event = game:GetService("ReplicatedStorage"):FindFirstChild("Communication") 
-                                    and game:GetService("ReplicatedStorage").Communication:FindFirstChild("DeleteHeldItem")
-                                if Event then
-                                    Event:FireServer()
+
+    JunkBox:AddToggle("AutoSellJunk", {
+        Text = "auto sell junk",
+        Default = false,
+        Callback = function(v)
+            autoSellJunkEnabled = v
+            if v then
+                task.spawn(function()
+                    while autoSellJunkEnabled do
+                        local backpack = Players.LocalPlayer:FindFirstChild("Backpack")
+                        if backpack then
+                            for name, isSelected in pairs(selectedJunk) do
+                                if isSelected and autoSellJunkEnabled then
+                                    local item = backpack:FindFirstChild(name)
+                                    if item then
+                                        local character = Players.LocalPlayer.Character
+                                        if character then
+                                            local humanoid = character:FindFirstChild("Humanoid")
+                                            if humanoid then
+                                                -- Equip
+                                                humanoid:EquipTool(item)
+                                                task.wait(0.5) -- Allow time to equip
+                                                -- Delete
+                                                local Event = game:GetService("ReplicatedStorage"):FindFirstChild("Communication") 
+                                                    and game:GetService("ReplicatedStorage").Communication:FindFirstChild("DeleteHeldItem")
+                                                if Event then
+                                                    Event:FireServer()
+                                                end
+                                                task.wait(0.5) -- Allow time to process delete
+                                            end
+                                        end
+                                    end
                                 end
                             end
                         end
+                        task.wait(1)
                     end
-                end
+                end)
             end
         end
     })
