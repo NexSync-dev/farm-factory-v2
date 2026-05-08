@@ -51,12 +51,56 @@ function GUI.build(state)
     local Tabs = {
         Main = Window:AddTab("main"),
         Farming = Window:AddTab("farm"),
+        Junk = Window:AddTab("junk"),
         Upgrades = Window:AddTab("upgrades"),
         Sniper = Window:AddTab("sniper"),
         Bees = Window:AddTab("bees"),
         Server = Window:AddTab("server"),
         ["UI Settings"] = Window:AddTab("ui"),
     }
+
+    -- ... (in the build function)
+
+    local JunkBox = Tabs.Junk:AddLeftGroupbox("sell junk")
+    local selectedJunk = {}
+    JunkBox:AddDropdown("JunkSelect", {
+        Values = FruitList, Multi = true, Text = "select fruits", AllowNull = true,
+        Callback = function(v) selectedJunk = v end
+    })
+    JunkBox:AddButton({
+        Text = "sell selected",
+        Func = function()
+            local backpack = Players.LocalPlayer:FindFirstChild("Backpack")
+            if not backpack then return end
+            for name, isSelected in pairs(selectedJunk) do
+                if isSelected then
+                    local item = backpack:FindFirstChild(name)
+                    if item then
+                        local character = Players.LocalPlayer.Character
+                        if character then
+                            local humanoid = character:FindFirstChild("Humanoid")
+                            if humanoid then
+                                -- Unequip if already equipped
+                                if character:FindFirstChild(name) then
+                                    humanoid:UnequipTools()
+                                    task.wait(0.1)
+                                end
+                                -- Equip
+                                Players.LocalPlayer.Character:FindFirstChild("Humanoid"):EquipTool(item)
+                                task.wait(0.1)
+                                -- Delete
+                                local Event = game:GetService("ReplicatedStorage"):FindFirstChild("Communication") 
+                                    and game:GetService("ReplicatedStorage").Communication:FindFirstChild("DeleteHeldItem")
+                                if Event then
+                                    Event:FireServer()
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    })
 
     state._library = Library
     state._unloaded = false

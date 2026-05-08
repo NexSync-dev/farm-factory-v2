@@ -157,17 +157,22 @@ local function processResult(result)
                 _buyLock = true
                 task.wait(0.3)
                 local stumpIdx = nil
-                for i = 1, 5 do
+                -- Try to find the stump multiple times
+                for i = 1, 10 do
                     stumpIdx = findStumpIndex(name)
                     if stumpIdx then break end
-                    task.wait(0.1)
+                    task.wait(0.2)
                 end
-                stumpIdx = stumpIdx or item.StumpIndex or item.Index or 0
-                if stumpIdx and BuyEvent then
-                    pcall(function() BuyEvent:FireServer(stumpIdx) end)
-                    Stats.spent = Stats.spent + 1
+                
+                if stumpIdx then
+                    if BuyEvent then
+                        pcall(function() BuyEvent:FireServer(stumpIdx) end)
+                        Stats.spent = Stats.spent + 1
+                    end
+                else
+                    Library:Notify("failed to locate stump for " .. name)
                 end
-                task.wait(0.2)
+                task.wait(0.5) -- Increased wait
                 _buyLock = false
             end
             if Cfg.disconnectOnFind and (Cfg.disconnectTargets[name] or next(Cfg.disconnectTargets) == nil) then
