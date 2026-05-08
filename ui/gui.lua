@@ -90,21 +90,23 @@ function GUI.build(state)
                                             if humanoid then
                                                 -- Equip
                                                 humanoid:EquipTool(item)
-                                                task.wait(0.5) -- Allow time to equip
+                                                -- Use minimal wait for equip to register
+                                                task.wait(0.1)
                                                 -- Delete
                                                 local Event = game:GetService("ReplicatedStorage"):FindFirstChild("Communication") 
                                                     and game:GetService("ReplicatedStorage").Communication:FindFirstChild("DeleteHeldItem")
                                                 if Event then
                                                     Event:FireServer()
                                                 end
-                                                task.wait(0.5) -- Allow time to process delete
+                                                -- Minimal wait for process
+                                                task.wait(0.1)
                                             end
                                         end
                                     end
                                 end
                             end
                         end
-                        task.wait(1)
+                        task.wait(0.5)
                     end
                 end)
             end
