@@ -11,9 +11,16 @@ local _isHopping = false
 local defaults = {
     autoHop = false,
     autoHopThreshold = 10,
-    hopOnPing = false,
-    maxPing = 300,
 }
+
+function ServerHop.rejoin()
+    if _isHopping then return end
+    _isHopping = true
+    if Utils then Utils.log("INFO", "ServerHop: Rejoining...") end
+    TeleportService:Teleport(game.PlaceId, LP)
+    task.wait(5)
+    _isHopping = false
+end
 
 function ServerHop.getServers(sortType)
     local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
@@ -21,39 +28,16 @@ function ServerHop.getServers(sortType)
         return game:HttpGet(url)
     end)
     
-    if not success then
-        if Utils then Utils.log("ERROR", "ServerHop: Failed to fetch servers") end
-        return {}
-    end
-    
+    if not success then return {} end
     local data = HttpService:JSONDecode(response)
     if not data or not data.data then return {} end
     
     local servers = data.data
     
     if sortType == "lowest_players" then
-        table.sort(servers, function(a, b)
-            return a.playing < b.playing
-        end)
+        table.sort(servers, function(a, b) return a.playing < b.playing end)
     elseif sortType == "highest_players" then
-        table.sort(servers, function(a, b)
-            return a.playing > b.playing
-        end)
-    elseif sortType == "lowest_ping" then
-        table.sort(servers, function(a, b)
-            local pa = tonumber(a.ping) or 9999
-            local pb = tonumber(b.ping) or 9999
-            if pa <= 0 then pa = 9999 end
-            if pb <= 0 then pb = 9999 end
-            if pa == pb then return a.playing < b.playing end
-            return pa < pb
-        end)
-    elseif sortType == "highest_ping" then
-        table.sort(servers, function(a, b)
-            local pa = tonumber(a.ping) or 0
-            local pb = tonumber(b.ping) or 0
-            return pa > pb
-        end)
+        table.sort(servers, function(a, b) return a.playing > b.playing end)
     end
     
     local candidates = {}
@@ -70,18 +54,12 @@ function ServerHop.hop(serverId)
     if _isHopping then return end
     _isHopping = true
     
-    if Utils then Utils.log("INFO", "ServerHop: Hopping to " .. tostring(serverId)) end
-    
     if serverId then
         TeleportService:TeleportToPlaceInstance(game.PlaceId, serverId, LP)
     else
-        -- Just random hop if no ID provided
         local servers = ServerHop.getServers("lowest_players")
-        for _, s in ipairs(servers) do
-            if s.id ~= game.JobId and s.playing < s.maxPlayers then
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, LP)
-                break
-            end
+        if #servers > 0 then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, servers[1].id, LP)
         end
     end
     
@@ -99,21 +77,9 @@ function ServerHop.init(state)
     
     task.spawn(function()
         while true do
-            if Cfg.autoHop then
-                if #Players:GetPlayers() > Cfg.autoHopThreshold then
-                    if Utils then Utils.log("INFO", "ServerHop: Player threshold reached, hopping...") end
-                    ServerHop.hop()
-                end
+            if Cfg.autoHop and #Players:GetPlayers() > Cfg.autoHopThreshold then
+                ServerHop.hop()
             end
-            
-            if Cfg.hopOnPing then
-                local currentPing = Utils.getPing()
-                if currentPing > Cfg.maxPing and currentPing < 5000 then -- 5000 is likely a freeze
-                    if Utils then Utils.log("INFO", "ServerHop: Ping threshold reached (" .. currentPing .. "ms), hopping...") end
-                    ServerHop.hop()
-                end
-            end
-            
             task.wait(10)
         end
     end)

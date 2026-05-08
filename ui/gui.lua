@@ -453,34 +453,14 @@ function GUI.build(state)
     BeeInfoBox:AddLabel("buy bees here")
 
     local ServerHop = state.ServerHop
-    local HopBox = Tabs.Server:AddLeftGroupbox("manual hop")
-    HopBox:AddButton({
-        Text = "lowest ping",
-        Func = function()
-            local servers = ServerHop.getServers("lowest_ping")
-            if #servers > 0 then ServerHop.hop(servers[1].id) end
-        end
-    })
+    local HopBox = Tabs.Server:AddLeftGroupbox("server hop")
     HopBox:AddButton({
         Text = "lowest players",
-        Func = function()
-            local servers = ServerHop.getServers("lowest_players")
-            if #servers > 0 then ServerHop.hop(servers[1].id) end
-        end
+        Func = function() ServerHop.hop() end
     })
     HopBox:AddButton({
-        Text = "highest players",
-        Func = function()
-            local servers = ServerHop.getServers("highest_players")
-            if #servers > 0 then ServerHop.hop(servers[1].id) end
-        end
-    })
-    HopBox:AddButton({
-        Text = "highest ping",
-        Func = function()
-            local servers = ServerHop.getServers("highest_ping")
-            if #servers > 0 then ServerHop.hop(servers[1].id) end
-        end
+        Text = "rejoin",
+        Func = function() ServerHop.rejoin() end
     })
 
     local AutoHopBox = Tabs.Server:AddRightGroupbox("auto hop")
@@ -494,17 +474,6 @@ function GUI.build(state)
         Default = Config.ServerHop.autoHopThreshold or 10,
         Min = 1, Max = 50, Rounding = 0,
         Callback = function(v) Config.ServerHop.autoHopThreshold = v end
-    })
-    AutoHopBox:AddToggle("HopOnPing", {
-        Text = "hop on high ping",
-        Default = Config.ServerHop.hopOnPing or false,
-        Callback = function(v) Config.ServerHop.hopOnPing = v end
-    })
-    AutoHopBox:AddSlider("MaxPing", {
-        Text = "max ping",
-        Default = Config.ServerHop.maxPing or 300,
-        Min = 50, Max = 1000, Rounding = 0,
-        Callback = function(v) Config.ServerHop.maxPing = v end
     })
 
     local UISettingsBox = Tabs["UI Settings"]:AddLeftGroupbox("menu")
